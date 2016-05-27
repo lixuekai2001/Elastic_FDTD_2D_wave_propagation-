@@ -6,7 +6,7 @@ close all;  %close all extra windows
 clc;  %clear console
 clear all; %clear all variables
 
- mg=8;
+ mg=2;
  NX =100*mg + 1;  %X
  NY =100*mg + 1;  %Y
 
@@ -38,25 +38,17 @@ DELTAX=(XMAX-XMIN)/(NX-1); %[m]
 DELTAY=(YMAX-YMIN)/(NY-1); %[m]
 
 
-density = 2700.d0;
-cp = 3000.d0;
-cs = 1732.05d0;
+% density = 2700.d0;
+% cp = 3000.d0;
+% cs = 1732.05d0;
 
-Courant_number = cp * DELTAT * sqrt(1.d0/DELTAX^2.d0 + 1.d0/DELTAY^2.d0);
-fprintf(' Courant number = %.4f\n',Courant_number); 
-if Courant_number > 1.d0 
-  disp('Error. Time step is too large, simulation will be unstable.');
-  %break;
-end
+density = 1000.d0;
+cp = 1500.d0;
+cs = 0.d0;
 
-wavelength = cp/f0;
-nodes_per_wavelength_x = wavelength/DELTAX;
-nodes_per_wavelength_y = wavelength/DELTAY;
-fprintf(' Shortest wavelength = %.2f m\n Nodes per wavelength:\n \t %.2f OX\n \t %.2f OY\n', wavelength, nodes_per_wavelength_x, nodes_per_wavelength_y);
+check_CFL(cp, DELTAT, DELTAX, DELTAY);
 
-if nodes_per_wavelength_x < 10 || nodes_per_wavelength_y < 10
-    disp('Too few nodes per wavelength. Decrease f0 or increase NX and NY');
-end
+check_nodes_per_wavelength(cp, f0, DELTAX, DELTAY)
 
 %--------------------------------------------------------------------------
 %---------------------- FLAGS ---------------------------------------------
@@ -87,12 +79,12 @@ DISP_NORM=true;
 DATA_TO_BINARY_FILE=false;
 tag='mz_';
 
-RED_BLUE=false;
+RED_BLUE=true;
 COLORBAR_ON=true;
 FE_BOUNDARY=false;
 SHOW_REC_POSITIONS=true;
 
-SAVE_SEISMOGRAMS=true;
+SAVE_SEISMOGRAMS=false;
 
 seis_tag=['BB'];
 %--------------------------------------------------------------------------
@@ -215,27 +207,17 @@ end
 
     
   %Set red-blue colormap for images
-  CMAP=zeros(256,3);
-  c1=[0 0 1]; %blue
-  c2=[1 1 1]; %white
-  c3=[1 0 0]; %red
-  for nc=1:128
-	  f=(nc-1)/128;
-	  c=(1-sqrt(f))*c1+sqrt(f)*c2;
-	  CMAP(nc,:)=c;
-	  c=(1-f^2)*c2+f^2*c3;
-	  CMAP(128+nc,:)=c;
-	end
-  if RED_BLUE
-      colormap(CMAP);
-  end
+if RED_BLUE
+  CMAP = make_red_blue_colormap();
+  colormap(CMAP);
+end
+
 
 rho=zeros(NX+1,NY+1);
 C=zeros(NX+1,NY+1,4);
 
 % lambda = 20.d0;
 % mu = 10.d0;
-
 
 lambda =density*(cp*cp - 2.d0*cs*cs);
 mu = density*cs*cs;
@@ -257,13 +239,16 @@ end
 % clearvars x_trial y_trial topo_szx tgrx;
 % clearvars c11a c13a c33a c44a c11b c13b c33b c44b;
 fprintf('C(i,j,4) of size: %s  ...OK\n',num2str(size(C)));
-
 fprintf('\n');
 
 
 % clearvars densitya cpa csa lambdaa mua densityb cpb csb lambdab mub;
 % clearvars x_trial y_trial topo_szx tgrx;
 % clearvars c11a c13a c33a c44a c11b c13b c33b c44b;
+
+source_rho = rho(ISOURCE, JSOURCE);
+[maxbar, minbar] = Ricker_amplitude(f0, t0, factor, ANGLE_FORCE, DELTAT, time_vec, source_rho);
+
 
 dx=DELTAX; 
 dy=DELTAY;
@@ -315,32 +300,18 @@ for it = 1:NSTEP
     end
 
     t = double(it-1)*DELTAT;
-%     if t<=t0             
-        % add the source (force vector located at a given grid point)
-        a = pi*pi*f0*f0;
-        % Gaussian
-        %source_term = factor * exp(-a*(t-t0)^2);
-        %source_term = factor * (t-t0);  
-        % first derivative of a Gaussian
-        %       source_term =  -factor*2.d0*a*(t-t0)*exp(-a*(t-t0)^2);
-        % Ricker source time function (second derivative of a Gaussian)
-        source_term = -factor * (1.d0 - 2.d0*a*(t-t0)^2)*exp(-a*(t-t0)^2);
-        %     source_term=factor * exp(-a*(t-t0)^2);
-        force_x = sin(ANGLE_FORCE * DEGREES_TO_RADIANS) * source_term;
-        force_y = cos(ANGLE_FORCE * DEGREES_TO_RADIANS) * source_term;
-        %       force_x=factor * (1.d0 - 2.d0*a*(t-t0)^2)*exp(-a*(t-t0)^2);
-        %       force_y=factor * (1.d0 - 2.d0*a*(t-t0)^2)*exp(-a*(t-t0)^2);
-        % define location of the source
+    if t<=2*t0             
+        [force_x, force_y] = source_function(f0, t0, factor, ANGLE_FORCE, t);
+
         i = ISOURCE;
         j = JSOURCE;
-
         rhov=rho(i,j);
+        
 %         ux(3,i,j) = ux(3,i,j) + (force_x * DELTAT)/rhov;
 %         uy(3,i,j) = uy(3,i,j) + (force_y * DELTAT)/rhov;
         ux(3,i,j) = (force_x * DELTAT^2.0)/rhov;
         uy(3,i,j) = (force_y * DELTAT^2.0)/rhov;
-%     fprintf('%e \n', force_y * DELTAT / rhov)
-%     end
+    end
 
 
     % Dirichlet conditions (rigid boundaries) on the edges or at the bottom of the PML layers
@@ -374,7 +345,6 @@ for it = 1:NSTEP
     %Set previous timesteps
     ux(1,:,:)=ux(2,:,:);
     ux(2,:,:)=ux(3,:,:);
-    
     uy(1,:,:)=uy(2,:,:);
     uy(2,:,:)=uy(3,:,:);
 
@@ -405,6 +375,8 @@ for it = 1:NSTEP
             xlabel('m');
             ylabel('m');
             set(gca,'YDir','normal');
+            caxis([minbar/5, maxbar/5]);
+            
             if FE_BOUNDARY
                 plot(xdscr,ydscr,'m'); 
             end
@@ -423,15 +395,10 @@ for it = 1:NSTEP
                 drawnow; 
             end
             
-            if SNAPSHOT
-                if  nnz(snapshot_time==it)>0
-                    snapshat = getframe(gcf);
-                    imgg = frame2im(snapshat);
+            if SNAPSHOT && nnz(snapshot_time==it)>0
                     scrsht_name=['im' num2str(it) '.png'];
-                    imwrite(imgg,scrsht_name);
+                    make_snapshot(scrsht_name);
                     fprintf('Screenshot %s saved to %s\n', scrsht_name, pwd);
-                    clearvars scrsht_name imgg snapshat
-                end  
             end
           
             if DATA_TO_BINARY_FILE
