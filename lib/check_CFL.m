@@ -1,4 +1,6 @@
 %% Check CFL stability condition.
+% cp - the largest from the model
+% Ovcharenko ). 2016
 
 function check_CFL(cp, DELTAT, DELTAX, DELTAY)
 % R. Courant et K. O. Friedrichs et H. Lewy (1928)

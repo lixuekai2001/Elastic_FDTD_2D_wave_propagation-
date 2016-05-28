@@ -6,17 +6,17 @@ clc;        %clear console
 clear all;  %clear all variables
 
 % total number of grid points in each direction of the grid
- mg= 1;
+ mg= 2;
  NX =100*mg;  %X
  NY =100*mg;  %Y
  
 %  time=0.02d0;
-  time=0.16d0;
+  time=0.8d0;
  
  % time step in seconds
 %  DELTAT = 0.5d-4;	%[sec] 
- DELTAT = 0.2d-3;	%[sec] 
- DELTAT = DELTAT/mg;
+ DELTAT = 0.2d-2;	%[sec] 
+%  DELTAT = DELTAT/mg;
  % total number of time steps
  %  NSTEP = 2000;
  NSTEP = round(time/DELTAT);
@@ -25,8 +25,8 @@ clear all;  %clear all variables
 % YMAX=50.d0; %[m]
 % XMAX=50.d0; %[m]
 
-YMAX=200.d0; %[m]
-XMAX=200.d0; %[m]
+YMAX=2000.d0; %[m]
+XMAX=2000.d0; %[m]
 
 XMIN=0.d0;
 YMIN=0.d0;
@@ -67,7 +67,7 @@ SAVE_VY_JPG =true;
 %because video is being created by capturing of current frame
 %Matlab 2012 + required, saves video to a current folder
 MAKE_MOVIE_VX=false;
-MAKE_MOVIE_VY=false;
+MAKE_MOVIE_VY=true;
 % tagv='mz2triso';
 tagv='mzm100';
 
@@ -89,7 +89,7 @@ seis_tag=['mzcurvetriso2D' num2str(NX)];
 RED_BLUE=false;      %use custom red-blue only colormap
 COLORBAR_ON=true;   %show colorbar
 FE_BOUNDARY=true;   %homogeneous or heterogeneous media
-WATER = false;
+WATER = true;
 
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
@@ -121,7 +121,6 @@ else
      fprintf('  cp_below=%.2f rho_below=%.2f\n', cp_below_eb, rho_below_eb);
 end
 
-check_CFL(cp_below_eb, DELTAT, DELTAX, DELTAY);
 % % zinc, from Komatitsch et al. (2000)
 % c11 = 16.5d10;
 % c13 = 5.d10;
@@ -202,9 +201,10 @@ ny_vec=[0:NY]*DELTAY;
 % density = 2800.d0;	%[kg/m3]
 
 % parameters for the source
-f0 = 50.d0;
+f0 = 8.d0;
 t0 = 1.20d0 / f0;
-factor = 1.d6;
+factor = 1.d10;
+
 
 % source
 ANGLE_FORCE = 90.d0;
@@ -228,8 +228,8 @@ STABILITY_THRESHOLD = 1.d+25;
 % xsource=round(NX/2)*DELTAX;
 % ysource=round(NY/4)*DELTAY;
 
-xsource=round(NX/4)*DELTAX;
-ysource=round(0.95*NY)*DELTAY;
+xsource=round(NX/2)*DELTAX;
+ysource=round(0.8*NY)*DELTAY;
 
 dist = HUGEVAL;
 for j = 2:NY
@@ -341,9 +341,9 @@ if SAVE_SEISMOGRAMS
     fprintf('%d files will be saved to %s',2*NREC,pwd)
     fprintf('\n ...OK\n');
 end
+
+
 %--------------------------------------------------------------------------
-
-
 %Reflection and transition coefficients
 Refl_coef=(rho_below_eb*cp_below_eb-rho_above_eb*cp_above_eb)/(rho_below_eb*cp_below_eb+rho_above_eb*cp_above_eb);
 Trans_coef=2.d0*rho_below_eb*cp_below_eb/(rho_below_eb*cp_below_eb+rho_above_eb*cp_above_eb);
@@ -354,31 +354,19 @@ else
 end
 fprintf('Below --> Above:\n');
 fprintf('  R= %.2f - reflection%s\n  T= %.2f - transmition\n', Refl_coef, tmps ,Trans_coef);
+fprintf('\n');
 clearvars  Refl_coef Trans_coef tmps;
 
 % initialize arrays
   ux(:,:,:) = ZERO;
   uy(:,:,:) = ZERO;
-  
-  velx(:,:)=ZERO;
-  vely(:,:)=ZERO;
-
-% % PML
-%   memory_dux_dxx(:,:) = ZERO;
-%   memory_duy_dyy(:,:) = ZERO;
-%   memory_duy_dxy(:,:) = ZERO;
-%   memory_dux_dxy(:,:) = ZERO;
 
 % initialize seismograms
   seisux(:,:) = ZERO;
   seisuy(:,:) = ZERO;
 
-% % initialize total energy
-%   total_energy_kinetic(:) = ZERO;
-%   total_energy_potential(:) = ZERO;
-
-fprintf('Set custom colormap');
- if RED_BLUE 
+ if RED_BLUE
+      fprintf('Set custom colormap');
       CMAP = make_red_blue_colormap();
       colormap(CMAP);
      fprintf('...OK\n');   
@@ -420,7 +408,7 @@ C=zeros(NX+1,NY+1,4);
 % compute the Lame parameters and density  
 % Create Cijkl matrix
 
-nice_matrix=zeros(NX+1,NY+1);
+nice_matrix = zeros(NX+1,NY+1);
 
 densitya = rho_above_eb;
 cpa = cp_above_eb;	%[km/s]
@@ -447,11 +435,10 @@ c13a = lambdaa;
 c33a = c11a;
 c44a = mua;
 
-% c11a = lambdaa;
-% c13a =lambdaa;
-% c33a = lambdaa;
-% c44a = lambdaa;
-
+if WATER
+     c44a = c11a;
+     c33a = c11a;
+end
 
 c11b = (lambdab + 2.d0*mub);
 c13b = lambdab;
@@ -520,6 +507,7 @@ for i = 1:NX
         end
     end
 end
+
 clearvars densitya cpa csa lambdaa mua densityb cpb csb lambdab mub;
 clearvars x_trial y_trial topo_szx tgrx;
 clearvars c11a c13a c33a c44a c11b c13b c33b c44b;
@@ -527,157 +515,29 @@ fprintf('C(i,j,4) of size: %s  ...OK\n',num2str(size(C)));
 
 fprintf('\n');
 
+% ?heck anisotropic material stability
 check_material_stability(C);
 
+% Check Courant stability condition
+check_CFL(cp_below_eb, DELTAT, DELTAX, DELTAY);
+
+% Check number of nodes per wavelength, ~ 10 is recommended
+check_nodes_per_wavelength(cp_above_eb, f0, DELTAX, DELTAY);
+
+%------------------------------------------------------------------------
+%     CONSTRUCT OPERATORS
+%------------------------------------------------------------------------
 fprintf('Constructing coeff{i,j}');
 % fprintf('Keep calm. It can take couple of minutes.\n');
-
-arr_eta0x=zeros(NX,NY,9);
-arr_eta1x=zeros(NX,NY,9);
-arr_eta0y=zeros(NX,NY,9);
-arr_eta1y=zeros(NX,NY,9);
-
 coeffux=cell(NX,NY);
 coeffuy=cell(NX,NY);
-% coeffuxm=zeros(NX,NY,3,4);
-% coeffuym=zeros(NX,NY,3,4);
-
-dx = DELTAX; 
-dy = DELTAY;
-dx2 = DELTAX^2.d0;
-dy2 = DELTAY^2.d0;
-ddx = 2.d0*DELTAX;
-ddy = 2.d0*DELTAY;
-dxdy4 = 4.d0*DELTAX*DELTAY;
-
-% one_over_2dx2 = 1.d0/(2.d0*DELTAX^2.d0);
-% one_over_2dy2 = 1.d0/(2.d0*DELTAY^2.d0);
-% one_over_2dxdy4 = 1.d0/(2.d0*dxdy4);
-
-% tmp_coeff=create_coeff(dx,dy);
-%ux(2,i+1,j+1); ux(2,i+1,j); ux(2,i+1,j-1); ux(2,i,j+1); ux(2,i,j); ux(2,i,j-1); ux(2,i-1,j+1); ux(2,i-1,j); ux(2,i-1,j-1)
-% tmp_coeff=[0 0 0 0 1.d0 0 0 0 0;...         %u
-%            0 1.d0 0 0 0 0 0 -1.d0 0;...     %ux
-%            0 0 0 1.d0 0 -1.d0 0 0 0;...     %uy
-%            0 1.d0 0 0 -2.d0 0 0 1.d0 0;...  %uxx
-%            0 0 0 1.d0 -2.d0 1.d0 0 0 0;...  %uyy
-%            1.d0 0 -1.d0 0 0 0 -1.d0 0 1.d0];%uxyassembly
-%        
-% denom_for_tmp_coeff=ones(size(tmp_coeff));  %u
-% denom_for_tmp_coeff(2,:)=1.d0/ddx;          %ux
-% denom_for_tmp_coeff(3,:)=1.d0/ddx;          %uy
-% denom_for_tmp_coeff(4,:)=1.d0/dx2;          %uxx
-% denom_for_tmp_coeff(5,:)=1.d0/dy2;          %uyy
-% denom_for_tmp_coeff(6,:)=1.d0/dxdy4;        %uxy
-% tmp_coeff=tmp_coeff.*denom_for_tmp_coeff;
-
-tmp_dx2=[1.d0 -2.d0 1.d0]/dx2;
-tmp_dy2=[1.d0 -2.d0 1.d0]/dy2;
-tmp_dxdy=[1.d0 -1.d0 -1.d0 1.d0]/dxdy4;
 
 tic;
 for i=2:NX %over OX
     for j=2:NY %over OY
-
-       % Construct eta0 and eta1 arrays for each marked point
+        % construct modified operators
         if markers(i,j)>0
-%             pt0x=gr_x(i,j);
-%             pt0y=gr_y(i,j);
-%             ctr=0;
-%             for ik=1:-1:-1 %over columns of points from right to left
-%                 for jk=1:-1:-1  %over rows of points from top to bottom
-%                         pt1x=gr_x(i+ik,j);
-%                         pt1y=gr_y(i,j+jk);
-%                         ctr=ctr+1;
-%                         x_trial=linspace(pt0x,pt1x,20);
-%                         y_trial=linspace(pt0y,pt1y,20);
-%                         [xi,yi]=curveintersect(x_trial,y_trial,xdscr, ydscr);
-%                         if ~isempty([xi,yi]) % check if there is an intersection
-%                             if size(xi,1)*size(xi,2)>1  %get rid of multiple intersections
-%                                 xi=xi(1);
-%                                 yi=yi(1);
-%                             end
-%                             delta_x=abs(pt1x-pt0x);
-%                             delta_y=abs(pt1y-pt0y);
-%                             if delta_x<eps || delta_y<eps
-%                                 if delta_x<eps %vertical line
-%                                     arr_eta0y(i,j,ctr)=abs(yi-pt0y)/delta_y;
-%                                     arr_eta1y(i,j,ctr)=1.d0-arr_eta0y(i,j,ctr);
-%                                     arr_eta0x(i,j,ctr)=ZERO;
-%                                     arr_eta1x(i,j,ctr)=ZERO;                                    
-%                                 end
-%                                 if delta_y<eps %hoizontal line
-%                                     arr_eta0x(i,j,ctr)=abs(xi-pt0x)/delta_x;
-%                                     arr_eta1x(i,j,ctr)=1.d0-arr_eta0x(i,j,ctr);
-%                                     arr_eta0y(i,j,ctr)=ZERO;
-%                                     arr_eta1y(i,j,ctr)=ZERO;
-%                                 end
-%                                 if delta_x<eps && delta_y<eps %if single point
-%                                     arr_eta0y(i,j,ctr)=ZERO;
-%                                     arr_eta1y(i,j,ctr)=ZERO;
-%                                     arr_eta0x(i,j,ctr)=ZERO;
-%                                     arr_eta1x(i,j,ctr)=ZERO;
-%                                 end
-%                             else %if evrything ok with deltas
-%                                     arr_eta0y(i,j,ctr)=abs((yi-pt0y)/delta_y);
-%                                     arr_eta1y(i,j,ctr)=1.d0-arr_eta0y(i,j,ctr);
-%                                     arr_eta0x(i,j,ctr)=abs((xi-pt0x)/delta_x);
-%                                     arr_eta1x(i,j,ctr)=1.d0-arr_eta0x(i,j,ctr);
-%                             end
-%                             
-%                             %Define normal in point
-%                             tmp=abs(xdscr-xi);
-%                             [cvalue,idx]=min(tmp);
-%                             if idx==1 
-%                                 idx=2;
-%                             end
-%                             p1x=xdscr(idx-1); p2x=xi; p3x=xdscr(idx+1);
-%                             p1y=ydscr(idx-1); p2y=yi; p3y=ydscr(idx+1);
-%                             s12 = sqrt((p2x-p1x)^2+(p2y-p1y)^2);
-%                             s23 = sqrt((p3x-p2x)^2+(p3y-p2y)^2);
-%                             dxds = (s23^2*(p2x-p1x)+s12^2*(p3x-p2x))/(s12*s23*(s12+s23));
-%                             dyds = (s23^2*(p2y-p1y)+s12^2*(p3y-p2y))/(s12*s23*(s12+s23));
-%                             tvx=dxds;
-%                             tvy=dyds;
-%                             nvx=-dyds;
-%                             nvy=dxds;
-%                         else  % if there is no intersection
-%                                 arr_eta1x(i,j,ctr)=1.d0*abs(ik);
-%                                 arr_eta1y(i,j,ctr)=1.d0*abs(jk);
-%                                 arr_eta0x(i,j,ctr)=abs(1.d0*ik)*abs((1.d0-arr_eta1x(i,j,ctr)));
-%                                 arr_eta0y(i,j,ctr)=abs(1.d0*jk)*abs((1.d0-arr_eta1y(i,j,ctr)));
-%                                 nvx=0.d0;
-%                                 nvy=0.d0;
-%                         end   % checking if there are intersections
-%                         
-%                         %Apply Mizutani operators
-%                         eta0x = arr_eta0x(i,j,ctr);
-%                         eta1x = arr_eta1x(i,j,ctr);
-%                         eta0y = arr_eta0y(i,j,ctr);
-%                         eta1y = arr_eta1y(i,j,ctr);                    
-% 
-%                         [A0,B0,A1,B1]=A0B0A1B1triso2(i,j,ik,jk,0,0,nvx,nvy,C,rho,dx,dy, ik*eta0x,-ik*eta1x, jk*eta0y, -jk*eta1y); % + 
-%                         CJI=svdinv(B0*A0)*(B1*A1);
-%                         coeffAux(ctr,:)=CJI(1,1:6);
-%                         coeffAuy(ctr,:)=CJI(7,7:12);
-%                 end      %end of jk loop
-%             end  %%end of ik loop
-%             
-%             pre_dx2=svdinv([coeffAux(2,[1,2,4]); coeffAux(5,[1,2,4]); coeffAux(8,[1,2,4])]);
-%             pre_dy2=svdinv([coeffAux(4,[1,3,5]); coeffAux(5,[1,3,5]); coeffAux(6,[1,3,5])]);
-%             pre_dxdy=svdinv([coeffAux(1,:); coeffAux(3,:); coeffAux(7,:); coeffAux(9,:)]);
-%             coeffux_dx2 = C(i,j,1)*pre_dx2(3,:);
-%             coeffux_dy2 = C(i,j,4)*pre_dy2(3,:);
-%             coeffux_dxdy= C(i,j,2)*pre_dxdy(6,:);
-%       
-%             pre_dx2=svdinv([coeffAuy(2,[1,2,4]); coeffAuy(5,[1,2,4]); coeffAuy(8,[1,2,4])]);
-%             pre_dy2=svdinv([coeffAuy(4,[1,3,5]); coeffAuy(5,[1,3,5]); coeffAuy(6,[1,3,5])]);
-%             pre_dxdy=svdinv([coeffAuy(1,:); coeffAuy(3,:); coeffAuy(7,:); coeffAuy(9,:)]);
-%             coeffuy_dx2 = C(i,j,4)*pre_dx2(3,:);
-%             coeffuy_dy2 = C(i,j,3)*pre_dy2(3,:);
-%             coeffuy_dxdy= C(i,j,4)*pre_dxdy(6,:);
-            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);
-            
+            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
             Aux(1,:) = C(i,j,1)*Aux(1,:);
             Aux(2,:) = C(i,j,4)*Aux(2,:);
             Aux(3,:) = C(i,j,2)*Aux(3,:);
@@ -689,13 +549,7 @@ for i=2:NX %over OX
             Auy(3,:) = C(i,j,4)*Auy(3,:);
             Auy(4,:) = C(i,j,2)*Auy(4,:);
             coeffuy{i,j}=Auy;
-            
-%             coeffux{i,j}=[[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
-%             coeffuy{i,j}=[[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
-%             coeffuxm(i,j,:,:) = [[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
-%             coeffuym(i,j,:,:) = [[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
-            
-        end  %end of if markers(i,j)
+        end
         
         %if any conditions were used - use conventional heterogeneous operator
         if isempty(coeffux{i,j}) && isempty(coeffuy{i,j})
@@ -703,18 +557,18 @@ for i=2:NX %over OX
             coeffux{i,j} = Aux;
             coeffuy{i,j} = Auy;
         end    
-    end % end of j loop
-end  %end of i loop
+        
+    end
+end
 fprintf('...OK\n')
 
 
 fprintf('Check coeff{i,j} for explosions');
-
-cux=[1.d0; 1.d0; 1.d0; C(i,j,1); C(i,j,4); C(i,j,2)];
-cuy=[1.d0; 1.d0; 1.d0; C(i,j,4); C(i,j,3); C(i,j,1)];
 mmAB=0;
 for i=2:size(coeffux,1)-2
     for j=2:size(coeffux,2)-2
+        cux=[C(i,j,1); C(i,j,4); C(i,j,2)];
+        cuy=[C(i,j,4); C(i,j,3); C(i,j,2)];
         A=max(max(coeffux{i,j}));
         B=max(max(coeffuy{i,j}));
         mAB=max(A,B);
@@ -723,12 +577,11 @@ for i=2:size(coeffux,1)-2
         end
     end
 end
-
 if mmAB>100*max(cux) || mmAB>100*max(cuy)
     fprintf('...FAILED\n');
 else
     fprintf('...OK\n');
-    clearvars i j A B mAB mmAB;
+    clearvars cux cuy i j A B mAB mmAB;
 end
 
 toc;
@@ -742,30 +595,23 @@ clearvars idx cvalue p1x p1y p2x p2y p3x p3y s12 s23 tmp tvx tvy
 clearvars xi yi xdeb xfin ydeb yfin dxds dyds;
 clearvars xoriginleft xoriginright nc;
 clearvars cp cs cp_above_eb cp_below_eb density rho_below_eb rho_above_eb;
-% clearvars tmp_dx2 tmp_dy2 tmp_dxdy coeffux_dx2 coeffux_dy2 coeffux_dxdy;
-% clearvars coeffuy_dx2 coeffuy_dy2 coeffuy_dxdy;
 
 fprintf('Used memory: %.2f mb\n', monitor_memory_whos);
 input('\nPress Enter to start time loop ...');
 
-%---------------------------------
-%---  beginning of the time loop -----
-%---------------------------------
+%------------------------------------------------------------------------
+%     TIME LOOP
+%------------------------------------------------------------------------
 for it = 1:NSTEP
     
     % calculate next step
+    
     tic;
 %     [ux, uy] = solver_mx_VTI_elastic(ux, uy, DELTAT, coeffux, coeffuy, rho, C);
 %     [ux, uy] = solver_mx_acoustic(ux, uy, DELTAT, coeffux, coeffuy, rho);
-    
-%             if WATER
-%                 sigmas_ux = value_dux_dxx + value_dux_dyy*C(i,j,1)/C(i,j,4);
-%                 sigmas_uy = value_duy_dxx*C(i,j,1)/C(i,j,4) + value_duy_dyy;
-%             end
 
     ux(3,:,:)=0.d0;
     uy(3,:,:)=0.d0;
-    
     
     for i = 2:NX
         for j = 2:NY          
@@ -781,8 +627,6 @@ for it = 1:NSTEP
             value_duy_dyy=A_uy(2,1:3)*[uy(2,i,j-1); uy(2,i,j); uy(2,i,j+1)];
             value_duy_dxy=A_uy(3,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
             value_duy_dyx=A_uy(4,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
-%             value_dux_dyx=value_dux_dxy*C(i,j,4)/C(i,j,2);
-%             value_duy_dyx=value_duy_dxy*C(i,j,2)/C(i,j,4);
 
             %--------------------------------------------------------------------------------------------------------------------
             
@@ -792,11 +636,11 @@ for it = 1:NSTEP
 %           sigmas_uy= c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
             
             if WATER && nice_matrix(i,j)
-                sigmas_ux= value_dux_dxx + value_dux_dyy;
-                sigmas_uy= value_duy_dxx + value_duy_dyy;
+                sigmas_ux = value_dux_dxx + value_dux_dyy;
+                sigmas_uy = value_duy_dxx + value_duy_dyy;
             else
-                sigmas_ux= value_dux_dxx + value_duy_dyx + value_dux_dyy + value_duy_dxy;
-                sigmas_uy= value_dux_dyx + value_duy_dxx + value_dux_dxy + value_duy_dyy;
+                sigmas_ux = value_dux_dxx + value_duy_dyx + value_dux_dyy + value_duy_dxy;
+                sigmas_uy = value_dux_dyx + value_duy_dxx + value_dux_dxy + value_duy_dyy;
             end
 
             ux(3,i,j) = 2.d0 * ux(2,i,j) - ux(1,i,j) + sigmas_ux * dt2rho;
@@ -805,7 +649,7 @@ for it = 1:NSTEP
         end
     end
 
-    % add source
+    % Add volumetric force source term
     t = double(it-1)*DELTAT;
     [force_x, force_y] = source_function(f0, t0, factor, ANGLE_FORCE, t);
     i = ISOURCE;
@@ -815,17 +659,17 @@ for it = 1:NSTEP
     uy(3,i,j) = uy(3,i,j) + force_y * DELTAT^2.d0 / rhov;
     
     
-    % Dirichlet conditions (rigid boundaries) on the edges or at the bottom of the PML layers
-    ux(3,1,:) = ZERO;
+    % Dirichlet conditions (rigid boundaries) on the edges
+    ux(3,1,:) = ZERO;       % OX left and right
     ux(3,NX+1,:) = ZERO;
 
-    ux(3,:,1) = ZERO;
+    ux(3,:,1) = ZERO;       % OX up and down
     ux(3,:,NY+1) = ZERO;
 
-    uy(3,1,:) = ZERO;
+    uy(3,1,:) = ZERO;       % OY left and right
     uy(3,NX+1,:) = ZERO;
 
-    uy(3,:,1) = ZERO;
+    uy(3,:,1) = ZERO;       % OY up and down
     uy(3,:,NY+1) = ZERO;
 
     % store seismograms
@@ -836,6 +680,9 @@ for it = 1:NSTEP
         end   
     end
     
+    % Implement exponential absorbing Cerjan boundary conditions
+    [ux, uy] = Cerjan_absorbing_BC(ux, uy, 0.025, [25 25], [25 25]);
+    
     %Set previous timesteps
     ux(1,:,:)=ux(2,:,:);
     ux(2,:,:)=ux(3,:,:);
@@ -843,14 +690,6 @@ for it = 1:NSTEP
     uy(1,:,:)=uy(2,:,:);
     uy(2,:,:)=uy(3,:,:);
 
-
-  
-%     velocnorm = max(sqrt(ux(3,:,:).^2 + uy(3,:,:).^2));
-%     if(velocnorm > STABILITY_THRESHOLD)
-%         %break 
-%         disp('code became unstable and blew up');
-%     end   
-    
     % output information
     if(mod(it,IT_DISPLAY) == 0 || it == 5)
         fprintf('Time step: %d\n',it)

@@ -1,6 +1,7 @@
 %% Check number of nodes per wavelength
 % cp has to be minimum possible
 % f0 has to be maximum possible
+% Ovcharenko O. 2016
 
 function check_nodes_per_wavelength(cp, f0, DELTAX, DELTAY)
 
