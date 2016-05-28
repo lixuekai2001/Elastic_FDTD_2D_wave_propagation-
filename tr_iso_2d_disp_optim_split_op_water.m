@@ -71,11 +71,6 @@ MAKE_MOVIE_VY=false;
 % tagv='mz2triso';
 tagv='mzm100';
 
-% flags to add PML layers to the edges of the grid
-% USE_PML_XMIN = false;
-% USE_PML_XMAX = false;
-% USE_PML_YMIN = false;
-% USE_PML_YMAX = false;
 
 DISP_NORM=true;    %show normal displacement
 % VEL_NORM=false;     %show normal velocity
@@ -88,38 +83,38 @@ seis_tag=['mzcurvetriso2D' num2str(NX)];
 
 RED_BLUE=false;      %use custom red-blue only colormap
 COLORBAR_ON=true;   %show colorbar
-FE_BOUNDARY=true;   %homogeneous or heterogeneous media
-WATER = true;
+% FE_BOUNDARY=true;   %homogeneous or heterogeneous media
+% WATER = true;
 
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
 eps=0.00000000001d0;
-
-if FE_BOUNDARY
-     fprintf('ON. Lithological boundary\n');     
-     % Water
-     cp_above_eb=1500.d0;
-     rho_above_eb=1000.d0;
-     % Seabed
-     cp_below_eb=3000.d0;
-     rho_below_eb=2400.d0;
-
-     fprintf('  cp_above=%.2f rho_above=%.2f\n', cp_above_eb, rho_above_eb);
-     fprintf('  cp_below=%.2f rho_below=%.2f\n', cp_below_eb, rho_below_eb);
-else
-     fprintf('OFF. Lithological boundary\n');
-%      cp_above_eb=1800.d0;
-%      cp_below_eb=1800.d0;
-%      rho_above_eb=2400.d0;
+% 
+% if FE_BOUNDARY
+%      fprintf('ON. Lithological boundary\n');     
+%      % Water
+%      cp_above_eb=1500.d0;
+%      rho_above_eb=1000.d0;
+%      % Seabed
+%      cp_below_eb=3000.d0;
 %      rho_below_eb=2400.d0;
-     cp_above_eb=1500.d0;
-     rho_above_eb=1000.d0;
-     % Seabed
-     cp_below_eb=1500.d0;
-     rho_below_eb=1000.d0;
-     fprintf('  cp_above=%.2f rho_above=%.2f\n', cp_above_eb, rho_above_eb);
-     fprintf('  cp_below=%.2f rho_below=%.2f\n', cp_below_eb, rho_below_eb);
-end
+% 
+%      fprintf('  cp_above=%.2f rho_above=%.2f\n', cp_above_eb, rho_above_eb);
+%      fprintf('  cp_below=%.2f rho_below=%.2f\n', cp_below_eb, rho_below_eb);
+% else
+%      fprintf('OFF. Lithological boundary\n');
+% %      cp_above_eb=1800.d0;
+% %      cp_below_eb=1800.d0;
+% %      rho_above_eb=2400.d0;
+% %      rho_below_eb=2400.d0;
+%      cp_above_eb=1500.d0;
+%      rho_above_eb=1000.d0;
+%      % Seabed
+%      cp_below_eb=1500.d0;
+%      rho_below_eb=1000.d0;
+%      fprintf('  cp_above=%.2f rho_above=%.2f\n', cp_above_eb, rho_above_eb);
+%      fprintf('  cp_below=%.2f rho_below=%.2f\n', cp_below_eb, rho_below_eb);
+% end
 
 %------------------------------------------------------------------
 %Check if it is possible to save video
@@ -286,18 +281,6 @@ end
 
 
 %--------------------------------------------------------------------------
-%Reflection and transition coefficients
-Refl_coef=(rho_below_eb*cp_below_eb-rho_above_eb*cp_above_eb)/(rho_below_eb*cp_below_eb+rho_above_eb*cp_above_eb);
-Trans_coef=2.d0*rho_below_eb*cp_below_eb/(rho_below_eb*cp_below_eb+rho_above_eb*cp_above_eb);
-if Refl_coef<ZERO
-  tmps=', inverse polarity';
-else
-  tmps='';
-end
-fprintf('Below --> Above:\n');
-fprintf('  R= %.2f - reflection%s\n  T= %.2f - transmition\n', Refl_coef, tmps ,Trans_coef);
-fprintf('\n');
-clearvars  Refl_coef Trans_coef tmps;
 
 % initialize arrays
   ux(:,:,:) = ZERO;
@@ -344,55 +327,21 @@ ydscr=ymid+ydscr;
  clearvars xt_dis nvecx nvecy yt_dis xmn ymn;  
 fprintf('...OK\n')
 
+
+%------------------------------------------------------------------------
+%     CREATE VELOCITY MODEL
 %------------------------------------------------------------------------
 C=zeros(NX+1,NY+1,4);
-        
-% compute the Lame parameters and density  
-% Create Cijkl matrix
-
 nice_matrix = zeros(NX+1,NY+1);
-
-densitya = rho_above_eb;
-cpa = cp_above_eb;	%[km/s]
-csa = cpa / 1.732d0;	%[km/s]
-
-if WATER
-     csa = 0.d0;
-end
-
-lambdaa =densitya*(cpa*cpa - 2.d0*csa*csa);
-mua = densitya*csa*csa;
-
-densityb = rho_below_eb;
-cpb = cp_below_eb;	%[km/s]
-csb = cpb / 1.732d0;	%[km/s]
-lambdab =densityb*(cpb*cpb - 2.d0*csb*csb);
-mub = densityb*csb*csb;
-
-topo_szx=length(xdscr);
-tgrx=round(topo_szx/NX);
-
-c11a = (lambdaa + 2.d0*mua);
-c13a = lambdaa;
-c33a = c11a;
-c44a = mua;
-
-if WATER
-     c44a = c11a;
-     c33a = c11a;
-end
-
-c11b = (lambdab + 2.d0*mub);
-c13b = lambdab;
-c33b = c11b;
-c44b = mub;
 
 fprintf('Create velocity model ');
 [model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX+1, NY+1, XMAX, XMIN, YMAX, YMIN);
 fprintf('...OK\n');
 fprintf('\n');
 
-fprintf('\nCreate C 6D %d elements\n',NX*NY*4);
+markers = find_modified_nodes(NX,NY,gr_x,gr_y ,interface_list);
+
+fprintf('\nCreate C 6D %d elements. ',NX*NY*4);
 for i = 1:NX+1
     for j = 1:NY+1
         rhov = model_rho(i,j);
@@ -419,68 +368,27 @@ for i = 1:NX+1
         C(i,j,:)=[c11v c13v c33v c44v];
     end
 end
-markers(:,:) = 0;
-% for i = 1:NX
-%     x_trial=(1+(i-1)*tgrx):(i*tgrx);
-%     for j = 1:NY
-%         y_trial=ny_vec(j);
-%         if y_trial>=ydscr(x_trial)
-%             C(i,j,:)=[c11a c13a c33a c44a];
-%             rho(i,j) = rho_above_eb;
-%             nice_matrix(i,j)=1.d0;
-%             if i==NX
-%                 C(i+1,j,:)=[c11a c13a c33a c44a];
-%                 rho(i+1,j) = rho_above_eb;
-%                 nice_matrix(i+1,j)=1.d0;
-%             end
-%             if j==NY
-%                 C(i,j+1,:)=[c11a c13a c33a c44a];
-%                 rho(i,j+1) = rho_above_eb;
-%                 nice_matrix(i,j+1)=1.d0;
-%             end
-%         else
-%             C(i,j,:)=[c11b c13b c33b c44b];
-%             rho(i,j) = rho_below_eb;
-%             nice_matrix(i,j)=0.d0;
-%             if i==NX
-%                 C(i+1,j,:)=[c11b c13b c33b c44b];
-%                 rho(i+1,j) = rho_below_eb;
-%                 nice_matrix(i+1,j)=0.d0;
-%             end
-%             if j==NY
-%                 C(i,j+1,:)=[c11b c13b c33b c44b];
-%                 rho(i,j+1) = rho_below_eb;
-%                 nice_matrix(i,j+1)=0.d0;
-%             end
-%         end
-%     end
-% end
-
-clearvars densitya cpa csa lambdaa mua densityb cpb csb lambdab mub;
-clearvars x_trial y_trial topo_szx tgrx;
-clearvars c11a c13a c33a c44a c11b c13b c33b c44b;
 fprintf('C(i,j,4) of size: %s  ...OK\n',num2str(size(C)));
-
 fprintf('\n');
 
 % ?heck anisotropic material stability
 check_material_stability(C);
 
 % Check Courant stability condition
-check_CFL(cp_below_eb, DELTAT, DELTAX, DELTAY);
+check_CFL(max(max(model_cp)), DELTAT, DELTAX, DELTAY);
 
 % Check number of nodes per wavelength, ~ 10 is recommended
-check_nodes_per_wavelength(cp_above_eb, f0, DELTAX, DELTAY);
+check_nodes_per_wavelength(min(min(model_cp)), f0, DELTAX, DELTAY);
 
 %------------------------------------------------------------------------
 %     CONSTRUCT OPERATORS
 %------------------------------------------------------------------------
-fprintf('Constructing coeff{i,j}');
-% fprintf('Keep calm. It can take couple of minutes.\n');
+fprintf('Constructing coeff{i,j}...');
 coeffux=cell(NX,NY);
 coeffuy=cell(NX,NY);
 
 tic;
+% Construct modified and conventional operators
 for i=2:NX %over OX
     for j=2:NY %over OY
         % construct modified operators
@@ -508,9 +416,9 @@ for i=2:NX %over OX
         
     end
 end
-fprintf('...OK\n')
+fprintf('OK\n')
 
-
+% Check stability of constructed operators
 fprintf('Check coeff{i,j} for explosions');
 mmAB=0;
 for i=2:size(coeffux,1)-2
@@ -531,7 +439,6 @@ else
     fprintf('...OK\n');
     clearvars cux cuy i j A B mAB mmAB;
 end
-
 toc;
 
 %Clean up memory from temporary variables
@@ -550,10 +457,8 @@ input('\nPress Enter to start time loop ...');
 %------------------------------------------------------------------------
 %     TIME LOOP
 %------------------------------------------------------------------------
-for it = 1:NSTEP
-    
+for it = 1:NSTEP   
     % calculate next step
-    
     tic;
 %     [ux, uy] = solver_mx_VTI_elastic(ux, uy, DELTAT, coeffux, coeffuy, rho, C);
 %     [ux, uy] = solver_mx_acoustic(ux, uy, DELTAT, coeffux, coeffuy, rho);
@@ -593,7 +498,6 @@ for it = 1:NSTEP
 
             ux(3,i,j) = 2.d0 * ux(2,i,j) - ux(1,i,j) + sigmas_ux * dt2rho;
             uy(3,i,j) = 2.d0 * uy(2,i,j) - uy(1,i,j) + sigmas_uy * dt2rho;
-
         end
     end
 
