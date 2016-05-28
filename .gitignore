@@ -2,10 +2,11 @@
 
 .DS_Store
 
+*.fig
 *.png
 *.jpg
 *.semd
-*.txt
+
 tmp_*
 tester*
 test*

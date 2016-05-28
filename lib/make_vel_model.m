@@ -1,101 +1,70 @@
+%% Create arbitrary velocity model of cp, cs, rho, with arbitrary number of interfaces of orbitrary length
+
 function [model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX, NZ, XMAX, XMIN, ZMAX, ZMIN)
-    n_interfaces = 4;
     
-    DELTAX=(XMAX-XMIN)/NX; %[m]
-    DELTAZ=(ZMAX-ZMIN)/NZ; %[m]
+    n_interfaces = 5;
     
-    x_vec=[0:NX]*DELTAX;	%[m]
-    z_vec=[0:NZ]*DELTAZ;
+    DELTAX=(XMAX-XMIN)/(NX-1);  %[m]
+    DELTAZ=(ZMAX-ZMIN)/(NZ-1);  %[m]
     
-    zmax = max(z_vec);
-    xmax = max(x_vec);
+    x_vec=[0:NX-1]*DELTAX;	%[m]
+    z_vec=[0:NZ-1]*DELTAZ;    %[m
     
-    int_1 = DELTAZ*(3*NZ/4+1) + 0*x_vec;
-    int_2 = DELTAZ*(3*NZ/5+1) + 0.03*zmax*sin(2*pi*x_vec/xmax);
-    int_3 = DELTAZ*(2*NZ/4+1) + 0.05*zmax*sin(2*pi*x_vec/xmax);
-    int_4 = DELTAZ*(1*NZ/4+1) + 0.08*zmax*sin(2*pi*x_vec/xmax + pi/2);
-    int_5 = 0.2*zmax*(1 - sin(2*2*pi*x_vec/xmax+pi/2));
-    int_5(1:round(length(x_vec)/2)) = 0;
+    x_vec1 = x_vec;
+    x_vec2 = x_vec;
+    x_vec3 = x_vec;
+    x_vec4 = x_vec;
+    x_vec5 = x_vec(round(length(x_vec)/2)+5:end-5);
+    
+    int_1 = DELTAZ*(3*NZ/4+1) + 0*x_vec1;
+    int_2 = DELTAZ*(3*NZ/5+1) + 0.03*ZMAX*sin(2*pi*x_vec2/XMAX);
+    int_3 = DELTAZ*(2*NZ/4+1) + 0.05*ZMAX*sin(2*pi*x_vec3/XMAX);
+    int_4 = DELTAZ*(1*NZ/4+1) + 0.08*ZMAX*sin(2*pi*x_vec4/XMAX + pi/2);
+    int_5 = 0.2*ZMAX*(1 - sin(2*2*pi*x_vec5/XMAX+pi/2));
 
-    model_rho = 2200*ones(NZ,NX);
 
-    model_cp = 1.5*ones(NZ,NX);
+    model_rho = 1000*ones(NZ,NX);
+    model_cp = 1500.d0*ones(NZ,NX);
     model_cs = zeros(NZ,NX);
-    for i=1:NX
-        for j = 1:NZ
-            y_test = DELTAZ * j;
-%             if j>=NZ/4+1+int_1(i)
-            if y_test <= int_1(i)
-                model_cp(i,j) = 2.5;
-                model_cs(i,j) = model_cp(i,j)/1.7320d0;
-            end
-        end
-    end
-%     imagesc(model_cp); drawnow; input('?');
-    
-    for i=1:NX
-        for j = 1:NZ
-            y_test = DELTAZ * j;
-%             if j>=2*NZ/5+1+int_2(i)
-            if y_test <= int_2(i)
-                model_cp(i,j) = 2.0;
-                model_cs(i,j) = model_cp(i,j)/1.7320d0;
-            end
-        end
-    end
-%     imagesc(model_cp); drawnow; input('?');
-    for i=1:NX
-        for j = 1:NZ
-            y_test = DELTAZ * j;
-%             if j>=2*NZ/4+1+int_3(i)
-            if y_test <= int_3(i)
-                model_cp(i,j) = 3.5;
-                model_cs(i,j) = model_cp(i,j)/1.7320d0;
-            end
-        end
-    end
-%     imagesc(model_cp); drawnow; input('?');
-    for i=1:NX
-        for j = 1:NZ
-            y_test = DELTAZ * j;
-%             if j>=3*NZ/4+1+int_4(i)
-            if y_test <= int_4(i)
-                model_cp(i,j) = 3.0;
-                model_cs(i,j) = model_cp(i,j)/1.7320d0;
-            end
-        end
-    end
-%     imagesc(model_cp); drawnow; input('?');
-    for i=1:NX
-        for j = 1:NZ
-            y_test = DELTAZ * j;
-%             if j>=NZ+1+int_5(i)
-            if y_test <= int_5(i)
-                model_cp(i,j) = 4.5;
-                model_cs(i,j) = model_cp(i,j)/1.7320d0;
-            end
-        end
-    end
 
-%         imagesc(model_cp); drawnow; input('?');
+    % Interface 1
+    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 2500.d0, 2500.d0/1.732d0, ... 
+                                                            2200.d0, x_vec1, int_1, DELTAX, DELTAZ, NZ);
+    % Interface 2    
+    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 2000.d0, 2000.d0/1.732d0, ... 
+                                                            2000.d0, x_vec2, int_2, DELTAX, DELTAZ, NZ);
+    % Interface 3
+    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 3500.d0, 3500.d0/1.732d0, ... 
+                                                            2600.d0, x_vec3, int_3, DELTAX, DELTAZ, NZ);
+    % Interface 4
+    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 3000.d0, 3000.d0/1.732d0, ... 
+                                                            2300.d0, x_vec4, int_4, DELTAX, DELTAZ, NZ);
+    % Interface 5    
+    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 4500.d0, 4500.d0/1.732d0, ... 
+                                                        2800.d0, x_vec5, int_5, DELTAX, DELTAZ, NZ);
+
     % Fill up interfaces list
     interface_list = cell(n_interfaces,2);
-    interface_list{1,1} = x_vec;
+    interface_list{1,1} = x_vec1;
     interface_list{1,2} = int_1;
     
-    interface_list{2,1} = x_vec;
+    interface_list{2,1} = x_vec2;
     interface_list{2,2} = int_2;
     
-    interface_list{3,1} = x_vec;
+    interface_list{3,1} = x_vec3;
     interface_list{3,2} = int_3;
     
-    interface_list{4,1} = x_vec;
+    interface_list{4,1} = x_vec4;
     interface_list{4,2} = int_4;
     
-    interface_list{5,1} = x_vec;
+    interface_list{5,1} = x_vec5;
     interface_list{5,2} = int_5;
 
     
-     imagesc(x_vec, z_vec,model_cs'); hold on;
-     set(gca,'YDir','normal');
+%      imagesc(x_vec, z_vec,model_cp'); hold on;
+%      set(gca,'YDir','normal');
+%      xlabel('m', 'fontSize',14, 'fontweight','b');
+%      ylabel('m', 'fontSize',14, 'fontweight','b');
+%      title('Model. Cp + Interfaces', 'fontSize',18);
+%      colorbar();
 end

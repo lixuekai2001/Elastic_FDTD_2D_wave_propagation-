@@ -6,7 +6,7 @@ clc;        %clear console
 clear all;  %clear all variables
 
 % total number of grid points in each direction of the grid
- mg= 2;
+ mg= 1;
  NX =100*mg;  %X
  NY =100*mg;  %Y
  
@@ -67,18 +67,18 @@ SAVE_VY_JPG =true;
 %because video is being created by capturing of current frame
 %Matlab 2012 + required, saves video to a current folder
 MAKE_MOVIE_VX=false;
-MAKE_MOVIE_VY=true;
+MAKE_MOVIE_VY=false;
 % tagv='mz2triso';
 tagv='mzm100';
 
 % flags to add PML layers to the edges of the grid
-USE_PML_XMIN = false;
-USE_PML_XMAX = false;
-USE_PML_YMIN = false;
-USE_PML_YMAX = false;
+% USE_PML_XMIN = false;
+% USE_PML_XMAX = false;
+% USE_PML_YMIN = false;
+% USE_PML_YMAX = false;
 
 DISP_NORM=true;    %show normal displacement
-VEL_NORM=false;     %show normal velocity
+% VEL_NORM=false;     %show normal velocity
 
 DATA_TO_BINARY_FILE=false;  %save data to .txt files
 tag='mz_';
@@ -121,64 +121,6 @@ else
      fprintf('  cp_below=%.2f rho_below=%.2f\n', cp_below_eb, rho_below_eb);
 end
 
-% % zinc, from Komatitsch et al. (2000)
-% c11 = 16.5d10;
-% c13 = 5.d10;
-% c33 = 6.2d10;
-% c44 = 3.96d10;
-% rho = 7100.d0;
-% % f0 = 170.d3;
-% f0 = 100;
-% 
-% % apatite, from Komatitsch et al. (2000)
-% c11 = 16.7d10;
-% c13 = 6.6d10;
-% c33 = 14.d10;
-% c44 = 6.63d10;
-% rho = 3200.d0;
-% f0 = 300.d3;
-
-% % isotropic material a bit similar to apatite
-% c11 = 16.7d10;
-% c13 = c11/3.d0;
-% c33 = c11;
-% c44 = (c11-c13)/2.d0;  % = c11/3.d0
-% density = 3200.d0;
-% f0 = 300.d3;
-
-% % model I from Becache, Fauqueux and Joly, which is stable
-% scale_aniso = 1.d10;
-% c11 = 4.d0 * scale_aniso;
-% c13 = 3.8d0 * scale_aniso;
-% c33 = 20.d0 * scale_aniso;
-% c44 = 2.d0 * scale_aniso;
-% density = 4000.d0;  % used to be 1.
-% f0 = 450.d3;
-
-% model II from Becache, Fauqueux and Joly, which is stable
-% scale_aniso = 1.d10;
-% c11 = 20.d0 * scale_aniso;
-% c13 = 3.8d0 * scale_aniso;
-% c33 = c11;
-% c44 = 2.d0 * scale_aniso;
-% density = 4000.d0;  % used to be 1.
-% f0 = 200.d3;
-% f0=170.d0;
-% density= rho;
-% cp = max(sqrt(c33/density),sqrt(c11/density));
-  
-% True isotropic
-% density= rho_above_eb;
-% cp = cp_above_eb;	%[km/s]
-% cs = cp / 1.732d0;	%[km/s]
-% lambda =density*(cp*cp - 2.d0*cs*cs);
-% mu = density*cs*cs;
-
-% c11 = (lambda + 2.d0*mu);
-% c13 = lambda;
-% c33 = c11;
-% c44 = mu;
- 
 %------------------------------------------------------------------
 %Check if it is possible to save video
 if MAKE_MOVIE_VY && ~SAVE_VY_JPG
@@ -445,68 +387,74 @@ c13b = lambdab;
 c33b = c11b;
 c44b = mub;
 
-%  scale_aniso = 1.d10;
-% c11b = 4.d0 * scale_aniso;
-% c13b = 3.8d0 * scale_aniso;
-% c33b = 20.d0 * scale_aniso;
-% c44b = 2.d0 * scale_aniso;
-% rho_below_eb = 4000.d0;  % used to be 1.
-% f0 = 200.d3;
-% f0 = 450.d0;
-% f0 = 250.d0;
-% scale_aniso = 1.d10;
-% c11b = 4.d0 * scale_aniso;
-% c13b = 3.8d0 * scale_aniso;
-% c33b = 20.d0 * scale_aniso;
-% c44b = 2.d0 * scale_aniso;
-% rho_below_eb = 4000.d0;  % used to be 1.
-% % f0 = 200.d3;
-% f0 = 170.d0;
-
-% % model II from Becache, Fauqueux and Joly, which is stable
-%  scale_aniso = 1.d10;
-% %  c11a = 20.d0 * scale_aniso;
-% %  c13a = 3.8d0 * scale_aniso;
-% %  c33a = c11a;
-% %  c44a = 2.d0 * scale_aniso;
-% %  rho_above_eb = 4000.d0;  % used to be 1.
+fprintf('Create velocity model ');
+[model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX+1, NY+1, XMAX, XMIN, YMAX, YMIN);
+fprintf('...OK\n');
+fprintf('\n');
 
 fprintf('\nCreate C 6D %d elements\n',NX*NY*4);
-for i = 1:NX
-    x_trial=(1+(i-1)*tgrx):(i*tgrx);
-    for j = 1:NY
-        y_trial=ny_vec(j);
-        if y_trial>=ydscr(x_trial)
-            C(i,j,:)=[c11a c13a c33a c44a];
-            rho(i,j) = rho_above_eb;
-            nice_matrix(i,j)=1.d0;
-            if i==NX
-                C(i+1,j,:)=[c11a c13a c33a c44a];
-                rho(i+1,j) = rho_above_eb;
-                nice_matrix(i+1,j)=1.d0;
-            end
-            if j==NY
-                C(i,j+1,:)=[c11a c13a c33a c44a];
-                rho(i,j+1) = rho_above_eb;
-                nice_matrix(i,j+1)=1.d0;
-            end
-        else
-            C(i,j,:)=[c11b c13b c33b c44b];
-            rho(i,j) = rho_below_eb;
-            nice_matrix(i,j)=0.d0;
-            if i==NX
-                C(i+1,j,:)=[c11b c13b c33b c44b];
-                rho(i+1,j) = rho_below_eb;
-                nice_matrix(i+1,j)=0.d0;
-            end
-            if j==NY
-                C(i,j+1,:)=[c11b c13b c33b c44b];
-                rho(i,j+1) = rho_below_eb;
-                nice_matrix(i,j+1)=0.d0;
-            end
+for i = 1:NX+1
+    for j = 1:NY+1
+        rhov = model_rho(i,j);
+        cpv = model_cp(i,j);
+        csv = model_cs(i,j);
+        
+        lambda =rhov*(cpv*cpv - 2.d0*csv*csv);
+        mu = rhov*csv*csv;  
+        
+        % isotropic material
+        c11v = (lambda + 2.d0*mu);
+        c13v = lambda;
+        c33v = c11v;
+        c44v = mu;
+        
+        % if in liquid
+        if csv < eps
+            nice_matrix(i,j) = 1;
+            c44v = c11v;
+            c33v = c11v;
         end
+        
+        rho(i,j) = model_rho(i,j);
+        C(i,j,:)=[c11v c13v c33v c44v];
     end
 end
+markers(:,:) = 0;
+% for i = 1:NX
+%     x_trial=(1+(i-1)*tgrx):(i*tgrx);
+%     for j = 1:NY
+%         y_trial=ny_vec(j);
+%         if y_trial>=ydscr(x_trial)
+%             C(i,j,:)=[c11a c13a c33a c44a];
+%             rho(i,j) = rho_above_eb;
+%             nice_matrix(i,j)=1.d0;
+%             if i==NX
+%                 C(i+1,j,:)=[c11a c13a c33a c44a];
+%                 rho(i+1,j) = rho_above_eb;
+%                 nice_matrix(i+1,j)=1.d0;
+%             end
+%             if j==NY
+%                 C(i,j+1,:)=[c11a c13a c33a c44a];
+%                 rho(i,j+1) = rho_above_eb;
+%                 nice_matrix(i,j+1)=1.d0;
+%             end
+%         else
+%             C(i,j,:)=[c11b c13b c33b c44b];
+%             rho(i,j) = rho_below_eb;
+%             nice_matrix(i,j)=0.d0;
+%             if i==NX
+%                 C(i+1,j,:)=[c11b c13b c33b c44b];
+%                 rho(i+1,j) = rho_below_eb;
+%                 nice_matrix(i+1,j)=0.d0;
+%             end
+%             if j==NY
+%                 C(i,j+1,:)=[c11b c13b c33b c44b];
+%                 rho(i,j+1) = rho_below_eb;
+%                 nice_matrix(i,j+1)=0.d0;
+%             end
+%         end
+%     end
+% end
 
 clearvars densitya cpa csa lambdaa mua densityb cpb csb lambdab mub;
 clearvars x_trial y_trial topo_szx tgrx;
