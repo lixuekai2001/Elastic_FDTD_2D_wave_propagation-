@@ -38,17 +38,17 @@ DELTAX=(XMAX-XMIN)/(NX-1); %[m]
 DELTAY=(YMAX-YMIN)/(NY-1); %[m]
 
 
-% density = 2700.d0;
-% cp = 3000.d0;
-% cs = 1732.05d0;
+density = 2700.d0;
+cp = 3000.d0;
+cs = 1732.05d0;
 
-density = 1000.d0;
-cp = 1500.d0;
-cs = 0.d0;
+% density = 1000.d0;
+% cp = 1500.d0;
+% cs = 0.d0;
 
 check_CFL(cp, DELTAT, DELTAX, DELTAY);
 
-check_nodes_per_wavelength(cp, f0, DELTAX, DELTAY)
+check_nodes_per_wavelength(cp, f0, DELTAX, DELTAY);
 
 %--------------------------------------------------------------------------
 %---------------------- FLAGS ---------------------------------------------
@@ -74,7 +74,7 @@ pause_time=0.1; %[sec]
 SAVE_VX_JPG =false; %doesn't work, because I didn't pay attention to it yet
 SAVE_VY_JPG =true;
 
-DISP_NORM=true;
+DISP_NORM=false;
 
 DATA_TO_BINARY_FILE=false;
 tag='mz_';
@@ -204,7 +204,6 @@ end
 % initialize arrays
   ux(:,:,:) = ZERO;
   uy(:,:,:) = ZERO;
-
     
   %Set red-blue colormap for images
 if RED_BLUE
@@ -212,12 +211,8 @@ if RED_BLUE
   colormap(CMAP);
 end
 
-
 rho=zeros(NX+1,NY+1);
 C=zeros(NX+1,NY+1,4);
-
-% lambda = 20.d0;
-% mu = 10.d0;
 
 lambda =density*(cp*cp - 2.d0*cs*cs);
 mu = density*cs*cs;
@@ -225,7 +220,7 @@ mu = density*cs*cs;
 c11 = (lambda + 2.d0*mu);
 c13 = lambda;
 c33 = c11;
-c44 = mu;    
+c44 = mu;  
  
 fprintf('\nCreate C 6D %d elements\n',NX*NY*4);
 for i = 1:NX
@@ -235,16 +230,9 @@ for i = 1:NX
     end
 end
 
-% clearvars densitya cpa csa lambdaa mua densityb cpb csb lambdab mub;
-% clearvars x_trial y_trial topo_szx tgrx;
-% clearvars c11a c13a c33a c44a c11b c13b c33b c44b;
 fprintf('C(i,j,4) of size: %s  ...OK\n',num2str(size(C)));
 fprintf('\n');
 
-
-% clearvars densitya cpa csa lambdaa mua densityb cpb csb lambdab mub;
-% clearvars x_trial y_trial topo_szx tgrx;
-% clearvars c11a c13a c33a c44a c11b c13b c33b c44b;
 
 source_rho = rho(ISOURCE, JSOURCE);
 [maxbar, minbar] = Ricker_amplitude(f0, t0, factor, ANGLE_FORCE, DELTAT, time_vec, source_rho);
@@ -260,9 +248,11 @@ dxdy4=4.d0*DELTAX*DELTAY;
 
 fprintf('Used memory: %.2f mb\n', monitor_memory_whos);
 input('\nPress Enter to start time loop ...');
+
 %---------------------------------
 %---  beginning of the time loop -----
 %---------------------------------
+
 for it = 1:NSTEP
     tic;
     ux(3,:,:)=ZERO;
@@ -292,6 +282,10 @@ for it = 1:NSTEP
 
             sigmas_ux = c11v * value_dux_dxx + c13v * value_duy_dyx + c44v * value_dux_dyy + c44v * value_duy_dxy;
             sigmas_uy = c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
+
+            % Acoustic wave propagation
+%             sigmas_ux = c11v * value_dux_dxx + c11v * value_dux_dyy;
+%             sigmas_uy = c11v * value_duy_dxx + c11v * value_duy_dyy;
 
             ux(3,i,j) = 2.d0 * ux(2,i,j) - ux(1,i,j) + sigmas_ux * dt2rho;
             uy(3,i,j) = 2.d0 * uy(2,i,j) - uy(1,i,j) + sigmas_uy * dt2rho;
@@ -375,7 +369,7 @@ for it = 1:NSTEP
             xlabel('m');
             ylabel('m');
             set(gca,'YDir','normal');
-            caxis([minbar/5, maxbar/5]);
+%             caxis([minbar/5, maxbar/5]);
             
             if FE_BOUNDARY
                 plot(xdscr,ydscr,'m'); 

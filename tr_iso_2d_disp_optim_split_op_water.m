@@ -84,13 +84,12 @@ DATA_TO_BINARY_FILE=false;  %save data to .txt files
 tag='mz_';
 
 SAVE_SEISMOGRAMS=false;
-% seis_tag='mz2';
-% seis_tag='pconvsin1000';
 seis_tag=['mzcurvetriso2D' num2str(NX)];
 
 RED_BLUE=false;      %use custom red-blue only colormap
 COLORBAR_ON=true;   %show colorbar
 FE_BOUNDARY=true;   %homogeneous or heterogeneous media
+WATER = false;
 
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
@@ -180,12 +179,6 @@ check_CFL(cp_below_eb, DELTAT, DELTAX, DELTAY);
 % c13 = lambda;
 % c33 = c11;
 % c44 = mu;
-
-%  f0 = 20.d0;%0.d3;
-% f0=200.d0;
-% f0=150.d0;
-
-
  
 %------------------------------------------------------------------
 %Check if it is possible to save video
@@ -203,9 +196,6 @@ nx_vec=[0:NX]*DELTAX;	%[m]
 ny_vec=[0:NY]*DELTAY;
 
 
-% thickness of the PML layer in grid points
-% NPOINTS_PML = 10;
-
 % P-velocity, S-velocity and density
 % cp = 3300.d0;	%[km/s]
 % cs = cp / 1.732d0;	%[km/s]
@@ -217,16 +207,6 @@ t0 = 1.20d0 / f0;
 factor = 1.d6;
 
 % source
-%ISOURCE = NX - 2*NPOINTS_PML - 1-round(NX/3);
-% ISOURCE = NX - round(NX/3);
-% JSOURCE = round(NY / 3) + 1;
-% ISOURCE = round(NX / 2);
-% JSOURCE = round(NY / 4);
-% xsource = ISOURCE * DELTAX;
-% ysource = JSOURCE * DELTAY;
-% xsource = (ISOURCE - 1) * DELTAX;
-% ysource = (JSOURCE - 1) * DELTAY;
-% angle of source force clockwise with respect to vertical (Y) axis
 ANGLE_FORCE = 90.d0;
 
 % value of PI
@@ -268,45 +248,12 @@ xsource=ISOURCE*DELTAX;
 ysource=JSOURCE*DELTAY;
 
 % main arrays
-%displacements over X and Y
 ux=zeros(3,NX+1,NY+1);
 uy=zeros(3,NX+1,NY+1);
-% variables that save wavefield at two previous time steps
-
-% velx=zeros(NX+1,NY+1);
-% vely=zeros(NX+1,NY+1);
 
 %elastic parameters
 rho=zeros(NX+1,NY+1);
 
-%   total_energy_kinetic=zeros(NSTEP);
-%   total_energy_potential=zeros(NSTEP);
-
-% power to compute d0 profile
-% NPOWER = 2.d0;
-% 
-% K_MAX_PML = 1.d0; % from Gedney page 8.11
-% ALPHA_MAX_PML = 2.d0*PI*(f0/2.d0); % from Festa and Vilotte
-% 
-% % could declare these arrays in PML only to save a lot of memory, but proof of concept only here
-% memory_dux_dxx=zeros(NX+1,NY+1);
-% memory_duy_dyy=zeros(NX+1,NY+1);
-% memory_dux_dxy=zeros(NX+1,NY+1);
-% memory_duy_dxy=zeros(NX+1,NY+1);
-
-% % 1D arrays for the damping profiles
-% d_x=zeros(NX+1,1);
-% K_x=zeros(NX+1,1);
-% alpha_x=zeros(NX+1,1);
-% a_x=zeros(NX+1,1);
-% b_x=zeros(NX+1,1);
-% 
-% d_y=zeros(NY+1,1);
-% K_y=zeros(NY+1,1);
-% alpha_y=zeros(NY+1,1);
-% a_y=zeros(NY+1,1);
-% b_y=zeros(NY+1,1);
- 
 %Initiate video object for vx
 if MAKE_MOVIE_VX
     movie_name_vx=[tagv '_vx_' num2str(NX) '_' num2str(NY) '_' num2str(DELTAX) '_' num2str(f0) '.avi'];
@@ -334,133 +281,6 @@ fprintf(' dx = %f  dy=%f  dt=%e\n',DELTAX,DELTAY,DELTAT);
 fprintf('Size of the model: %.2f m x ',NX*DELTAX);
 fprintf('%.2f\n',NY*DELTAY);
 fprintf('\n');
-
-% %--- define profile of absorption in PML region ---
-% % thickness of the PML layer in meters
-%   thickness_PML_x = NPOINTS_PML * DELTAX;
-%   thickness_PML_y = NPOINTS_PML * DELTAY;
-% 
-% % reflection coefficient (INRIA report section 6.1) http://hal.inria.fr/docs/00/07/32/19/PDF/RR-3471.pdf
-%   Rcoef = 0.001d0;
-% 
-% % check that NPOWER is okaymarkers=zeros(nx+1,ny+1);
-%   if(NPOWER < 1)       
-%       disp('NPOWER must be greater than 1');
-%       %break;
-%   end
-% 
-% 
-%   
-% % compute d0 from INRIA report section 6.1 http://hal.inria.fr/docs/00/07/32/19/PDF/RR-3471.pdf
-%   d0_x = - (NPOWER + 1.d0) * cp * log(Rcoef) / (2.d0 * thickness_PML_x);
-%   d0_y = - (NPOWER + 1.d0) * cp * log(Rcoef) / (2.d0 * thickness_PML_y);
-%  
-% %   fprintf('d0_x = %.2f\n',d0_x);
-% %   fprintf('d0_y = %.2f\n\n',d0_y);
-% 
-%   d_x(:) = ZERO;
-%   K_x(:) = 1.d0;
-%   alpha_x(:) = ZERO;
-%   a_x(:) = ZERO;
-% 
-%   d_y(:) = ZERO;
-%   K_y(:) = 1.d0;
-%   alpha_y(:) = ZERO;
-%   a_y(:) = ZERO;
-%   %%break;
-% %--------------------------------------------------------------------------
-% % damping in the X direction
-% 
-% %PMLs by Roland Martin
-% % origin of the PML layer (position of right edge minus thickness, in meters)
-%   xoriginleft = thickness_PML_x;
-%   xoriginright = (NX-1)*DELTAX - thickness_PML_x;
-% 
-% for i = 1:NX+1
-%     % abscissa of current grid point along the damping profile
-%     xval = DELTAX * double(i-1);
-%     %---------- left edge
-%     if(USE_PML_XMIN)
-%         % define damping profile at the grid points
-%         abscissa_in_PML = xoriginleft - xval;
-%         if(abscissa_in_PML >= ZERO)
-%             abscissa_normalized = abscissa_in_PML / thickness_PML_x;
-%             d_x(i) = d0_x * abscissa_normalized^NPOWER;
-%             % this taken from Gedney page 8.2
-%             K_x(i) = 1.d0 + (K_MAX_PML - 1.d0) * abscissa_normalized^NPOWER;
-%             alpha_x(i) = ALPHA_MAX_PML * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML;
-%         end
-%     end
-% 
-% %---------- right edge
-%    if(USE_PML_XMAX)
-%         % define damping profile at the grid points
-%         abscissa_in_PML = xval - xoriginright;
-%         if(abscissa_in_PML >= ZERO)
-%             abscissa_normalized = abscissa_in_PML / thickness_PML_x;
-%             d_x(i) = d0_x * abscissa_normalized^NPOWER;
-%             % this taken from Gedney page 8.2
-%             K_x(i) = 1.d0 + (K_MAX_PML - 1.d0) * abscissa_normalized^NPOWER;
-%             alpha_x(i) = ALPHA_MAX_PML * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML;
-%         end
-%    end
-% 
-%     % just in case, for -5 at the end
-%     if(alpha_x(i) < ZERO) 
-%         alpha_x(i) = ZERO;
-%     end
-% 
-%     b_x(i) = exp(- (d_x(i) / K_x(i) + alpha_x(i)) * DELTAT);
-%   
-%     % this to avoid division by zero outside the PML
-%     if(abs(d_x(i)) > 1.d-6) 
-%         a_x(i) = d_x(i) * (b_x(i) - 1.d0) / (K_x(i) * (d_x(i) + K_x(i) * alpha_x(i)));
-%     end    
-%   end
-% 
-% %--------------------------------------------------------------------------
-% % damping in the Y direction
-% 
-% % origin of the PML layer (position of right edge minus thickness, in meters)
-%   yoriginbottom = thickness_PML_y;
-%   yorigintop = (NY-1)*DELTAY - thickness_PML_y;
-% 
-%   for j = 1:NY+1
-%     % abscissa of current grid point along the damping profile
-%     yval = DELTAY * double(j-1);
-%     %---------- bottom edge
-%     if(USE_PML_YMIN)
-%       % define damping profile at the grid points
-%       abscissa_in_PML = yoriginbottom - yval;
-%       if(abscissa_in_PML >= ZERO)
-%         abscissa_normalized = abscissa_in_PML / thickness_PML_y;
-%         d_y(j) = d0_y * abscissa_normalized^NPOWER;
-%         % this taken from Gedney page 8.2
-%         K_y(j) = 1.d0 + (K_MAX_PML - 1.d0) * abscissa_normalized^NPOWER;
-%         alpha_y(j) = ALPHA_MAX_PML * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML;
-%       end
-%     end
-% 
-% %---------- top edge
-%     if(USE_PML_YMAX)
-%       % define damping profile at the grid points
-%       abscissa_in_PML = yval - yorigintop;
-%       if(abscissa_in_PML >= ZERO)
-%         abscissa_normalized = abscissa_in_PML / thickness_PML_y;
-%         d_y(j) = d0_y * abscissa_normalized^NPOWER;
-%         % this taken from Gedney page 8.2
-%         K_y(j) = 1.d0 + (K_MAX_PML - 1.d0) * abscissa_normalized^NPOWER;
-%         alpha_y(j) = ALPHA_MAX_PML * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML;
-%       end
-%     end
-% 
-%     b_y(j) = exp(- (d_y(j) / K_y(j) + alpha_y(j)) * DELTAT);
-%     
-%     % this to avoid division by zero outside the PML
-%     if(abs(d_y(j)) > 1.d-6)
-%         a_y(j) = d_y(j) * (b_y(j) - 1.d0) / (K_y(j) * (d_y(j) + K_y(j) * alpha_y(j)));
-%     end  
-%   end
 
 if SAVE_SEISMOGRAMS
     fprintf('ON. Save seismograms\n');
@@ -605,7 +425,9 @@ nice_matrix=zeros(NX+1,NY+1);
 densitya = rho_above_eb;
 cpa = cp_above_eb;	%[km/s]
 csa = cpa / 1.732d0;	%[km/s]
-% csa = 0.d0;
+if WATER
+     csa = 0.d0;
+end
 lambdaa =densitya*(cpa*cpa - 2.d0*csa*csa);
 mua = densitya*csa*csa;
 
@@ -622,6 +444,12 @@ c11a = (lambdaa + 2.d0*mua);
 c13a = lambdaa;
 c33a = c11a;
 c44a = mua;
+
+% c11a = lambdaa;
+% c13a =lambdaa;
+% c33a = lambdaa;
+% c44a = lambdaa;
+
 
 c11b = (lambdab + 2.d0*mub);
 c13b = lambdab;
@@ -690,8 +518,6 @@ for i = 1:NX
         end
     end
 end
-% dlmwrite('cijtr', C);
-% fprintf('C(i,j,4) saved to %s\n', pwd);
 clearvars densitya cpa csa lambdaa mua densityb cpb csb lambdab mub;
 clearvars x_trial y_trial topo_szx tgrx;
 clearvars c11a c13a c33a c44a c11b c13b c33b c44b;
@@ -708,15 +534,6 @@ arr_eta0x=zeros(NX,NY,9);
 arr_eta1x=zeros(NX,NY,9);
 arr_eta0y=zeros(NX,NY,9);
 arr_eta1y=zeros(NX,NY,9);
-
-% coefficients for ux and uy derivatives
-% coeffux_dx2=cell(NX,NY);
-% coeffux_dy2=cell(NX,NY);
-% coeffux_dxdy=cell(NX,NY);
-% 
-% coeffuy_dx2=cell(NX,NY);
-% coeffuy_dy2=cell(NX,NY);
-% coeffuy_dxdy=cell(NX,NY);
 
 coeffux=cell(NX,NY);
 coeffuy=cell(NX,NY);
@@ -888,41 +705,40 @@ for i=2:NX %over OX
             mc = C(i,j-1,3) +2.d0*C(i,j,3)+C(i,j+1,3); %middle point  
             coeffuy_dy2 = one_over_2dy2*[ml -mc mr];
             
-            %ux_dxdy
-%             mp1p1 = C(i+1,j+1,2)+C(i,j,2);
-%             mp1m1 = C(i+1,j-1,2)+C(i,j,2);
-%             mm1p1 = C(i-1,j+1,2)+C(i,j,2);
-%             mm1m1 = C(i-1,j-1,2)+C(i,j,2);
-%             coeffux_dxdy= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
+%             ux_dxdy
+            mp1p1 = C(i+1,j+1,2)+C(i,j,2);
+            mp1m1 = C(i+1,j-1,2)+C(i,j,2);
+            mm1p1 = C(i-1,j+1,2)+C(i,j,2);
+            mm1m1 = C(i-1,j-1,2)+C(i,j,2);
+            coeffux_dxdy= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
             
-            %uy_dxdy
-%             mp1p1 = C(i+1,j+1,1)+C(i,j,1);
-%             mp1m1 = C(i+1,j-1,1)+C(i,j,1);
-%             mm1p1 = C(i-1,j+1,1)+C(i,j,1);
-%             mm1m1 = C(i-1,j-1,1)+C(i,j,1);
-%             coeffuy_dxdy= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
+%             uy_dxdy
+            mp1p1 = C(i+1,j+1,4)+C(i,j,4);
+            mp1m1 = C(i+1,j-1,4)+C(i,j,4);
+            mm1p1 = C(i-1,j+1,4)+C(i,j,4);
+            mm1m1 = C(i-1,j-1,4)+C(i,j,4);
+            coeffuy_dxdy= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
             
 %             coeffux_dx2 = C(i,j,1)*tmp_dx2;
 %             coeffux_dy2 = C(i,j,4)*tmp_dy2;
-            coeffux_dxdy= C(i,j,2)*tmp_dxdy;
+%             coeffux_dxdy= C(i,j,2)*tmp_dxdy;
       
 %             coeffuy_dx2 = C(i,j,4)*tmp_dx2;
 %             coeffuy_dy2 = C(i,j,3)*tmp_dy2;
-            coeffuy_dxdy= C(i,j,4)*tmp_dxdy;
+%             coeffuy_dxdy= C(i,j,4)*tmp_dxdy;
             
             coeffux{i,j}=[[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
             coeffuy{i,j}=[[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
 %             coeffuxm(i,j,:,:) = [[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
 %             coeffuym(i,j,:,:) = [[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
-        end
-        
+        end    
     end % end of j loop
 end  %end of i loop
 fprintf('...OK\n')
 
 
 fprintf('Check coeff{i,j} for explosions');
-% tic;
+
 cux=[1.d0; 1.d0; 1.d0; C(i,j,1); C(i,j,4); C(i,j,2)];
 cuy=[1.d0; 1.d0; 1.d0; C(i,j,4); C(i,j,3); C(i,j,1)];
 mmAB=0;
@@ -936,13 +752,12 @@ for i=2:size(coeffux,1)-2
         end
     end
 end
+
 if mmAB>100*max(cux) || mmAB>100*max(cuy)
     fprintf('...FAILED\n');
-%     %break;
 else
     fprintf('...OK\n');
     clearvars i j A B mAB mmAB;
-%     toc;
 end
 
 toc;
@@ -967,44 +782,51 @@ input('\nPress Enter to start time loop ...');
 %---------------------------------
 for it = 1:NSTEP
     tic;
-    ux(3,:,:)=ZERO;
-    uy(3,:,:)=ZERO;
-    for i = 2:NX
-        for j = 2:NY
-            rhov=rho(i,j);
-            A_ux=coeffux{i,j};
-%             A_ux=squeeze(coeffuxm(i,j,:,:));
-%             A_ux=coeffuxm(i,j,:,:);
-            value_dux_dxx=A_ux(1,1:3)*[ux(2,i-1,j); ux(2,i,j); ux(2,i+1,j)];
-            value_dux_dyy=A_ux(2,1:3)*[ux(2,i,j-1); ux(2,i,j); ux(2,i,j+1)];
-            value_dux_dxy=A_ux(3,:)*[ux(2,i+1,j+1); ux(2,i+1,j-1); ux(2,i-1,j+1); ux(2,i-1,j-1)];
-            
-            A_uy=coeffuy{i,j};
-%             A_uy=squeeze(coeffuym(i,j,:,:));
-%             A_uy=coeffuym(i,j,:,:);
-            value_duy_dxx=A_uy(1,1:3)*[uy(2,i-1,j); uy(2,i,j); uy(2,i+1,j)];
-            value_duy_dyy=A_uy(2,1:3)*[uy(2,i,j-1); uy(2,i,j); uy(2,i,j+1)];
-            value_duy_dxy=A_uy(3,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
-            
-            value_dux_dyx=value_dux_dxy*C(i,j,4)/C(i,j,2);
-            value_duy_dyx=value_duy_dxy*C(i,j,2)/C(i,j,4);
-
-            %--------------------------------------------------------------------------------------------------------------------
-            
-            dt2rho=(DELTAT^2.d0)/rhov;
+    [ux, uy] = solver_mx_VTI_elastic(ux, uy, DELTAT, coeffux, coeffuy, rho, C);
+%     tic;
+%     ux(3,:,:)=ZERO;
+%     uy(3,:,:)=ZERO;
+%     for i = 2:NX
+%         for j = 2:NY
+%             rhov=rho(i,j);
+%             A_ux=coeffux{i,j};
+% %             A_ux=squeeze(coeffuxm(i,j,:,:));
+% %             A_ux=coeffuxm(i,j,:,:);
+%             value_dux_dxx=A_ux(1,1:3)*[ux(2,i-1,j); ux(2,i,j); ux(2,i+1,j)];
+%             value_dux_dyy=A_ux(2,1:3)*[ux(2,i,j-1); ux(2,i,j); ux(2,i,j+1)];
+%             value_dux_dxy=A_ux(3,:)*[ux(2,i+1,j+1); ux(2,i+1,j-1); ux(2,i-1,j+1); ux(2,i-1,j-1)];
+%             
+%             A_uy=coeffuy{i,j};
+% %             A_uy=squeeze(coeffuym(i,j,:,:));
+% %             A_uy=coeffuym(i,j,:,:);
+%             value_duy_dxx=A_uy(1,1:3)*[uy(2,i-1,j); uy(2,i,j); uy(2,i+1,j)];
+%             value_duy_dyy=A_uy(2,1:3)*[uy(2,i,j-1); uy(2,i,j); uy(2,i,j+1)];
+%             value_duy_dxy=A_uy(3,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
+%             
+%             value_dux_dyx=value_dux_dxy*C(i,j,4)/C(i,j,2);
+%             value_duy_dyx=value_duy_dxy*C(i,j,2)/C(i,j,4);
 % 
-%           sigmas_ux= c11v * value_dux_dxx + c13v * value_duy_dyx + c44v * value_dux_dyy + c44v * value_duy_dxy;
-%           sigmas_uy= c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
-
-            sigmas_ux= value_dux_dxx + value_duy_dyx + value_dux_dyy + value_duy_dxy;
-            sigmas_uy= value_dux_dyx + value_duy_dxx + value_dux_dxy + value_duy_dyy;
-
-            ux(3,i,j) = 2.d0 * ux(2,i,j) - ux(1,i,j) + sigmas_ux * dt2rho;
-            uy(3,i,j) = 2.d0 * uy(2,i,j) - uy(1,i,j) + sigmas_uy * dt2rho;
-
-        end
-    end
-
+%             %--------------------------------------------------------------------------------------------------------------------
+%             
+%             dt2rho=(DELTAT^2.d0)/rhov;
+% % 
+% %           sigmas_ux= c11v * value_dux_dxx + c13v * value_duy_dyx + c44v * value_dux_dyy + c44v * value_duy_dxy;
+% %           sigmas_uy= c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
+% 
+%             sigmas_ux= value_dux_dxx + value_duy_dyx + value_dux_dyy + value_duy_dxy;
+%             sigmas_uy= value_dux_dyx + value_duy_dxx + value_dux_dxy + value_duy_dyy;
+%             
+%             if WATER
+%                 sigmas_ux = value_dux_dxx + value_dux_dyy*C(i,j,1)/C(i,j,4);
+%                 sigmas_uy = value_duy_dxx*C(i,j,1)/C(i,j,4) + value_duy_dyy;
+%             end
+% 
+%             ux(3,i,j) = 2.d0 * ux(2,i,j) - ux(1,i,j) + sigmas_ux * dt2rho;
+%             uy(3,i,j) = 2.d0 * uy(2,i,j) - uy(1,i,j) + sigmas_uy * dt2rho;
+% 
+%         end
+%     end
+% 
      t = double(it-1)*DELTAT;
     [force_x, force_y] = source_function(f0, t0, factor, ANGLE_FORCE, t);
 
@@ -1014,7 +836,7 @@ for it = 1:NSTEP
     rhov = rho(i,j);
     ux(3,i,j) = ux(3,i,j) + force_x * DELTAT^2.d0 / rhov;
     uy(3,i,j) = uy(3,i,j) + force_y * DELTAT^2.d0 / rhov;
-    
+%     
     % Dirichlet conditions (rigid boundaries) on the edges or at the bottom of the PML layers
     ux(3,1,:) = ZERO;
     ux(3,NX+1,:) = ZERO;
@@ -1027,15 +849,15 @@ for it = 1:NSTEP
 
     uy(3,:,1) = ZERO;
     uy(3,:,NY+1) = ZERO;
-
-    % store seismograms
-    if SAVE_SEISMOGRAMS
-        for irec = 1:NREC
-                seisux(it,irec) = ux(3,ix_rec(irec),iy_rec(irec));
-                seisuy(it,irec) = uy(3,ix_rec(irec),iy_rec(irec));
-        end   
-    end
-    
+% 
+%     % store seismograms
+%     if SAVE_SEISMOGRAMS
+%         for irec = 1:NREC
+%                 seisux(it,irec) = ux(3,ix_rec(irec),iy_rec(irec));
+%                 seisuy(it,irec) = uy(3,ix_rec(irec),iy_rec(irec));
+%         end   
+%     end
+%     
     %Set previous timesteps
     ux(1,:,:)=ux(2,:,:);
     ux(2,:,:)=ux(3,:,:);
