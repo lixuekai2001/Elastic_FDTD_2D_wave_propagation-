@@ -1,0 +1,59 @@
+
+% % zinc, from Komatitsch et al. (2000)
+% c11 = 16.5d10;
+% c13 = 5.d10;
+% c33 = 6.2d10;
+% c44 = 3.96d10;
+% rho = 7100.d0;
+% % f0 = 170.d3;
+% f0 = 100;
+% 
+% % apatite, from Komatitsch et al. (2000)
+% c11 = 16.7d10;
+% c13 = 6.6d10;
+% c33 = 14.d10;
+% c44 = 6.63d10;
+% rho = 3200.d0;
+% f0 = 300.d3;
+
+% % isotropic material a bit similar to apatite
+% c11 = 16.7d10;
+% c13 = c11/3.d0;
+% c33 = c11;
+% c44 = (c11-c13)/2.d0;  % = c11/3.d0
+% density = 3200.d0;
+% f0 = 300.d3;
+
+% % model I from Becache, Fauqueux and Joly, which is stable - WE USED IT
+% scale_aniso = 1.d10;
+% c11 = 4.d0 * scale_aniso;
+% c13 = 3.8d0 * scale_aniso;
+% c33 = 20.d0 * scale_aniso;
+% c44 = 2.d0 * scale_aniso;
+% density = 4000.d0;  % used to be 1.
+% f0 = 450.d3;
+
+% model II from Becache, Fauqueux and Joly, which is stable
+% scale_aniso = 1.d10;
+% c11 = 20.d0 * scale_aniso;
+% c13 = 3.8d0 * scale_aniso;
+% c33 = c11;
+% c44 = 2.d0 * scale_aniso;
+% density = 4000.d0;  % used to be 1.
+% f0 = 200.d3;
+% f0=170.d0;
+% density= rho;
+% cp = max(sqrt(c33/density),sqrt(c11/density));
+  
+% True isotropic
+% density= rho_above_eb;
+% cp = cp_above_eb;	%[km/s]
+% cs = cp / 1.732d0;	%[km/s]
+% lambda =density*(cp*cp - 2.d0*cs*cs);
+% mu = density*cs*cs;
+
+% c11 = (lambda + 2.d0*mu);
+% c13 = lambda;
+% c33 = c11;
+% c44 = mu;
+ 
