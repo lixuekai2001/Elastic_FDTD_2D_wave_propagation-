@@ -425,9 +425,11 @@ nice_matrix=zeros(NX+1,NY+1);
 densitya = rho_above_eb;
 cpa = cp_above_eb;	%[km/s]
 csa = cpa / 1.732d0;	%[km/s]
+
 if WATER
      csa = 0.d0;
 end
+
 lambdaa =densitya*(cpa*cpa - 2.d0*csa*csa);
 mua = densitya*csa*csa;
 
@@ -508,12 +510,12 @@ for i = 1:NX
             if i==NX
                 C(i+1,j,:)=[c11b c13b c33b c44b];
                 rho(i+1,j) = rho_below_eb;
-                nice_matrix(i+1,j)=1.d0;
+                nice_matrix(i+1,j)=0.d0;
             end
             if j==NY
                 C(i,j+1,:)=[c11b c13b c33b c44b];
                 rho(i,j+1) = rho_below_eb;
-                nice_matrix(i,j+1)=1.d0;
+                nice_matrix(i,j+1)=0.d0;
             end
         end
     end
@@ -548,9 +550,9 @@ ddx = 2.d0*DELTAX;
 ddy = 2.d0*DELTAY;
 dxdy4 = 4.d0*DELTAX*DELTAY;
 
-one_over_2dx2 = 1.d0/(2.d0*DELTAX^2.d0);
-one_over_2dy2 = 1.d0/(2.d0*DELTAY^2.d0);
-one_over_2dxdy4 = 1.d0/(2.d0*dxdy4);
+% one_over_2dx2 = 1.d0/(2.d0*DELTAX^2.d0);
+% one_over_2dy2 = 1.d0/(2.d0*DELTAY^2.d0);
+% one_over_2dxdy4 = 1.d0/(2.d0*dxdy4);
 
 % tmp_coeff=create_coeff(dx,dy);
 %ux(2,i+1,j+1); ux(2,i+1,j); ux(2,i+1,j-1); ux(2,i,j+1); ux(2,i,j); ux(2,i,j-1); ux(2,i-1,j+1); ux(2,i-1,j); ux(2,i-1,j-1)
@@ -579,104 +581,108 @@ for i=2:NX %over OX
 
        % Construct eta0 and eta1 arrays for each marked point
         if markers(i,j)>0
-            pt0x=gr_x(i,j);
-            pt0y=gr_y(i,j);
-            ctr=0;
-            for ik=1:-1:-1 %over columns of points from right to left
-                for jk=1:-1:-1  %over rows of points from top to bottom
-                        pt1x=gr_x(i+ik,j);
-                        pt1y=gr_y(i,j+jk);
-                        ctr=ctr+1;
-                        x_trial=linspace(pt0x,pt1x,20);
-                        y_trial=linspace(pt0y,pt1y,20);
-                        [xi,yi]=curveintersect(x_trial,y_trial,xdscr, ydscr);
-                        if ~isempty([xi,yi]) % check if there is an intersection
-                            if size(xi,1)*size(xi,2)>1  %get rid of multiple intersections
-                                xi=xi(1);
-                                yi=yi(1);
-                            end
-                            delta_x=abs(pt1x-pt0x);
-                            delta_y=abs(pt1y-pt0y);
-                            if delta_x<eps || delta_y<eps
-                                if delta_x<eps %vertical line
-                                    arr_eta0y(i,j,ctr)=abs(yi-pt0y)/delta_y;
-                                    arr_eta1y(i,j,ctr)=1.d0-arr_eta0y(i,j,ctr);
-                                    arr_eta0x(i,j,ctr)=ZERO;
-                                    arr_eta1x(i,j,ctr)=ZERO;                                    
-                                end
-                                if delta_y<eps %hoizontal line
-                                    arr_eta0x(i,j,ctr)=abs(xi-pt0x)/delta_x;
-                                    arr_eta1x(i,j,ctr)=1.d0-arr_eta0x(i,j,ctr);
-                                    arr_eta0y(i,j,ctr)=ZERO;
-                                    arr_eta1y(i,j,ctr)=ZERO;
-                                end
-                                if delta_x<eps && delta_y<eps %if single point
-                                    arr_eta0y(i,j,ctr)=ZERO;
-                                    arr_eta1y(i,j,ctr)=ZERO;
-                                    arr_eta0x(i,j,ctr)=ZERO;
-                                    arr_eta1x(i,j,ctr)=ZERO;
-                                end
-                            else %if evrything ok with deltas
-                                    arr_eta0y(i,j,ctr)=abs((yi-pt0y)/delta_y);
-                                    arr_eta1y(i,j,ctr)=1.d0-arr_eta0y(i,j,ctr);
-                                    arr_eta0x(i,j,ctr)=abs((xi-pt0x)/delta_x);
-                                    arr_eta1x(i,j,ctr)=1.d0-arr_eta0x(i,j,ctr);
-                            end
-                            
-                            %Define normal in point
-                            tmp=abs(xdscr-xi);
-                            [cvalue,idx]=min(tmp);
-                            if idx==1 
-                                idx=2;
-                            end
-                            p1x=xdscr(idx-1); p2x=xi; p3x=xdscr(idx+1);
-                            p1y=ydscr(idx-1); p2y=yi; p3y=ydscr(idx+1);
-                            s12 = sqrt((p2x-p1x)^2+(p2y-p1y)^2);
-                            s23 = sqrt((p3x-p2x)^2+(p3y-p2y)^2);
-                            dxds = (s23^2*(p2x-p1x)+s12^2*(p3x-p2x))/(s12*s23*(s12+s23));
-                            dyds = (s23^2*(p2y-p1y)+s12^2*(p3y-p2y))/(s12*s23*(s12+s23));
-                            tvx=dxds;
-                            tvy=dyds;
-                            nvx=-dyds;
-                            nvy=dxds;
-                        else  % if there is no intersection
-                                arr_eta1x(i,j,ctr)=1.d0*abs(ik);
-                                arr_eta1y(i,j,ctr)=1.d0*abs(jk);
-                                arr_eta0x(i,j,ctr)=abs(1.d0*ik)*abs((1.d0-arr_eta1x(i,j,ctr)));
-                                arr_eta0y(i,j,ctr)=abs(1.d0*jk)*abs((1.d0-arr_eta1y(i,j,ctr)));
-                                nvx=0.d0;
-                                nvy=0.d0;
-                        end   % checking if there are intersections
-                        
-                        %Apply Mizutani operators
-                        eta0x = arr_eta0x(i,j,ctr);
-                        eta1x = arr_eta1x(i,j,ctr);
-                        eta0y = arr_eta0y(i,j,ctr);
-                        eta1y = arr_eta1y(i,j,ctr);                    
-
-                        [A0,B0,A1,B1]=A0B0A1B1triso2(i,j,ik,jk,0,0,nvx,nvy,C,rho,dx,dy, ik*eta0x,-ik*eta1x, jk*eta0y, -jk*eta1y); % + 
-                        CJI=svdinv(B0*A0)*(B1*A1);
-                        coeffAux(ctr,:)=CJI(1,1:6);
-                        coeffAuy(ctr,:)=CJI(7,7:12);
-                end      %end of jk loop
-            end  %%end of ik loop
+%             pt0x=gr_x(i,j);
+%             pt0y=gr_y(i,j);
+%             ctr=0;
+%             for ik=1:-1:-1 %over columns of points from right to left
+%                 for jk=1:-1:-1  %over rows of points from top to bottom
+%                         pt1x=gr_x(i+ik,j);
+%                         pt1y=gr_y(i,j+jk);
+%                         ctr=ctr+1;
+%                         x_trial=linspace(pt0x,pt1x,20);
+%                         y_trial=linspace(pt0y,pt1y,20);
+%                         [xi,yi]=curveintersect(x_trial,y_trial,xdscr, ydscr);
+%                         if ~isempty([xi,yi]) % check if there is an intersection
+%                             if size(xi,1)*size(xi,2)>1  %get rid of multiple intersections
+%                                 xi=xi(1);
+%                                 yi=yi(1);
+%                             end
+%                             delta_x=abs(pt1x-pt0x);
+%                             delta_y=abs(pt1y-pt0y);
+%                             if delta_x<eps || delta_y<eps
+%                                 if delta_x<eps %vertical line
+%                                     arr_eta0y(i,j,ctr)=abs(yi-pt0y)/delta_y;
+%                                     arr_eta1y(i,j,ctr)=1.d0-arr_eta0y(i,j,ctr);
+%                                     arr_eta0x(i,j,ctr)=ZERO;
+%                                     arr_eta1x(i,j,ctr)=ZERO;                                    
+%                                 end
+%                                 if delta_y<eps %hoizontal line
+%                                     arr_eta0x(i,j,ctr)=abs(xi-pt0x)/delta_x;
+%                                     arr_eta1x(i,j,ctr)=1.d0-arr_eta0x(i,j,ctr);
+%                                     arr_eta0y(i,j,ctr)=ZERO;
+%                                     arr_eta1y(i,j,ctr)=ZERO;
+%                                 end
+%                                 if delta_x<eps && delta_y<eps %if single point
+%                                     arr_eta0y(i,j,ctr)=ZERO;
+%                                     arr_eta1y(i,j,ctr)=ZERO;
+%                                     arr_eta0x(i,j,ctr)=ZERO;
+%                                     arr_eta1x(i,j,ctr)=ZERO;
+%                                 end
+%                             else %if evrything ok with deltas
+%                                     arr_eta0y(i,j,ctr)=abs((yi-pt0y)/delta_y);
+%                                     arr_eta1y(i,j,ctr)=1.d0-arr_eta0y(i,j,ctr);
+%                                     arr_eta0x(i,j,ctr)=abs((xi-pt0x)/delta_x);
+%                                     arr_eta1x(i,j,ctr)=1.d0-arr_eta0x(i,j,ctr);
+%                             end
+%                             
+%                             %Define normal in point
+%                             tmp=abs(xdscr-xi);
+%                             [cvalue,idx]=min(tmp);
+%                             if idx==1 
+%                                 idx=2;
+%                             end
+%                             p1x=xdscr(idx-1); p2x=xi; p3x=xdscr(idx+1);
+%                             p1y=ydscr(idx-1); p2y=yi; p3y=ydscr(idx+1);
+%                             s12 = sqrt((p2x-p1x)^2+(p2y-p1y)^2);
+%                             s23 = sqrt((p3x-p2x)^2+(p3y-p2y)^2);
+%                             dxds = (s23^2*(p2x-p1x)+s12^2*(p3x-p2x))/(s12*s23*(s12+s23));
+%                             dyds = (s23^2*(p2y-p1y)+s12^2*(p3y-p2y))/(s12*s23*(s12+s23));
+%                             tvx=dxds;
+%                             tvy=dyds;
+%                             nvx=-dyds;
+%                             nvy=dxds;
+%                         else  % if there is no intersection
+%                                 arr_eta1x(i,j,ctr)=1.d0*abs(ik);
+%                                 arr_eta1y(i,j,ctr)=1.d0*abs(jk);
+%                                 arr_eta0x(i,j,ctr)=abs(1.d0*ik)*abs((1.d0-arr_eta1x(i,j,ctr)));
+%                                 arr_eta0y(i,j,ctr)=abs(1.d0*jk)*abs((1.d0-arr_eta1y(i,j,ctr)));
+%                                 nvx=0.d0;
+%                                 nvy=0.d0;
+%                         end   % checking if there are intersections
+%                         
+%                         %Apply Mizutani operators
+%                         eta0x = arr_eta0x(i,j,ctr);
+%                         eta1x = arr_eta1x(i,j,ctr);
+%                         eta0y = arr_eta0y(i,j,ctr);
+%                         eta1y = arr_eta1y(i,j,ctr);                    
+% 
+%                         [A0,B0,A1,B1]=A0B0A1B1triso2(i,j,ik,jk,0,0,nvx,nvy,C,rho,dx,dy, ik*eta0x,-ik*eta1x, jk*eta0y, -jk*eta1y); % + 
+%                         CJI=svdinv(B0*A0)*(B1*A1);
+%                         coeffAux(ctr,:)=CJI(1,1:6);
+%                         coeffAuy(ctr,:)=CJI(7,7:12);
+%                 end      %end of jk loop
+%             end  %%end of ik loop
+%             
+%             pre_dx2=svdinv([coeffAux(2,[1,2,4]); coeffAux(5,[1,2,4]); coeffAux(8,[1,2,4])]);
+%             pre_dy2=svdinv([coeffAux(4,[1,3,5]); coeffAux(5,[1,3,5]); coeffAux(6,[1,3,5])]);
+%             pre_dxdy=svdinv([coeffAux(1,:); coeffAux(3,:); coeffAux(7,:); coeffAux(9,:)]);
+%             coeffux_dx2 = C(i,j,1)*pre_dx2(3,:);
+%             coeffux_dy2 = C(i,j,4)*pre_dy2(3,:);
+%             coeffux_dxdy= C(i,j,2)*pre_dxdy(6,:);
+%       
+%             pre_dx2=svdinv([coeffAuy(2,[1,2,4]); coeffAuy(5,[1,2,4]); coeffAuy(8,[1,2,4])]);
+%             pre_dy2=svdinv([coeffAuy(4,[1,3,5]); coeffAuy(5,[1,3,5]); coeffAuy(6,[1,3,5])]);
+%             pre_dxdy=svdinv([coeffAuy(1,:); coeffAuy(3,:); coeffAuy(7,:); coeffAuy(9,:)]);
+%             coeffuy_dx2 = C(i,j,4)*pre_dx2(3,:);
+%             coeffuy_dy2 = C(i,j,3)*pre_dy2(3,:);
+%             coeffuy_dxdy= C(i,j,4)*pre_dxdy(6,:);
+            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);
             
-            pre_dx2=svdinv([coeffAux(2,[1,2,4]); coeffAux(5,[1,2,4]); coeffAux(8,[1,2,4])]);
-            pre_dy2=svdinv([coeffAux(4,[1,3,5]); coeffAux(5,[1,3,5]); coeffAux(6,[1,3,5])]);
-            pre_dxdy=svdinv([coeffAux(1,:); coeffAux(3,:); coeffAux(7,:); coeffAux(9,:)]);
-            coeffux_dx2 = C(i,j,1)*pre_dx2(3,:);
-            coeffux_dy2 = C(i,j,4)*pre_dy2(3,:);
-            coeffux_dxdy= C(i,j,2)*pre_dxdy(6,:);
-      
-            pre_dx2=svdinv([coeffAuy(2,[1,2,4]); coeffAuy(5,[1,2,4]); coeffAuy(8,[1,2,4])]);
-            pre_dy2=svdinv([coeffAuy(4,[1,3,5]); coeffAuy(5,[1,3,5]); coeffAuy(6,[1,3,5])]);
-            pre_dxdy=svdinv([coeffAuy(1,:); coeffAuy(3,:); coeffAuy(7,:); coeffAuy(9,:)]);
-            coeffuy_dx2 = C(i,j,4)*pre_dx2(3,:);
-            coeffuy_dy2 = C(i,j,3)*pre_dy2(3,:);
-            coeffuy_dxdy= C(i,j,4)*pre_dxdy(6,:);
+             coeffux{i,j}=Aux;
+             coeffuy{i,j}=Auy;
             
-            coeffux{i,j}=[[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
-            coeffuy{i,j}=[[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
+%             coeffux{i,j}=[[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
+%             coeffuy{i,j}=[[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
 %             coeffuxm(i,j,:,:) = [[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
 %             coeffuym(i,j,:,:) = [[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
             
@@ -684,40 +690,54 @@ for i=2:NX %over OX
         
         %if any conditions were used use conventional operator
         if isempty(coeffux{i,j}) && isempty(coeffuy{i,j})
-            %ux_dx2
-            ml = C(i-1,j,1)+C(i,j,1);                  %left point 
-            mr = C(i,j,1)+C(i+1,j,1);                  %right point
-            mc = C(i-1,j,1) +2.d0*C(i,j,1)+C(i+1,j,1); %middle point
-            coeffux_dx2 = one_over_2dx2*[ml -mc mr];
-            %uy_dx2
-            ml = C(i-1,j,4)+C(i,j,4);                  %left point 
-            mr = C(i,j,4)+C(i+1,j,4);                  %right point
-            mc = C(i-1,j,4) +2.d0*C(i,j,4)+C(i+1,j,4); %middle point
-            coeffuy_dx2 = one_over_2dx2*[ml -mc mr];
-            %ux_dy2
-            ml = C(i,j-1,4)+C(i,j,4);                  %left point 
-            mr = C(i,j,4)+C(i,j+1,4);                  %right point
-            mc = C(i,j-1,4) +2.d0*C(i,j,4)+C(i,j+1,4); %middle point           
-            coeffux_dy2 = one_over_2dy2*[ml -mc mr];
-            %uy_dy2
-            ml = C(i,j-1,3)+C(i,j,3);                  %left point 
-            mr = C(i,j,3)+C(i,j+1,3);                  %right point
-            mc = C(i,j-1,3) +2.d0*C(i,j,3)+C(i,j+1,3); %middle point  
-            coeffuy_dy2 = one_over_2dy2*[ml -mc mr];
-            
-%             ux_dxdy
-            mp1p1 = C(i+1,j+1,2)+C(i,j,2);
-            mp1m1 = C(i+1,j-1,2)+C(i,j,2);
-            mm1p1 = C(i-1,j+1,2)+C(i,j,2);
-            mm1m1 = C(i-1,j-1,2)+C(i,j,2);
-            coeffux_dxdy= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
-            
-%             uy_dxdy
-            mp1p1 = C(i+1,j+1,4)+C(i,j,4);
-            mp1m1 = C(i+1,j-1,4)+C(i,j,4);
-            mm1p1 = C(i-1,j+1,4)+C(i,j,4);
-            mm1m1 = C(i-1,j-1,4)+C(i,j,4);
-            coeffuy_dxdy= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
+%             %ux_dx2
+%             ml = C(i-1,j,1)+C(i,j,1);                  %left point 
+%             mr = C(i,j,1)+C(i+1,j,1);                  %right point
+%             mc = C(i-1,j,1) +2.d0*C(i,j,1)+C(i+1,j,1); %middle point
+%             coeffux_dx2 = one_over_2dx2*[ml -mc mr];
+%             %uy_dx2
+%             ml = C(i-1,j,4)+C(i,j,4);                  %left point 
+%             mr = C(i,j,4)+C(i+1,j,4);                  %right point
+%             mc = C(i-1,j,4) +2.d0*C(i,j,4)+C(i+1,j,4); %middle point
+%             coeffuy_dx2 = one_over_2dx2*[ml -mc mr];
+%             %ux_dy2
+%             ml = C(i,j-1,4)+C(i,j,4);                  %left point 
+%             mr = C(i,j,4)+C(i,j+1,4);                  %right point
+%             mc = C(i,j-1,4) +2.d0*C(i,j,4)+C(i,j+1,4); %middle point           
+%             coeffux_dy2 = one_over_2dy2*[ml -mc mr];
+%             %uy_dy2
+%             ml = C(i,j-1,3)+C(i,j,3);                  %left point 
+%             mr = C(i,j,3)+C(i,j+1,3);                  %right point
+%             mc = C(i,j-1,3) +2.d0*C(i,j,3)+C(i,j+1,3); %middle point  
+%             coeffuy_dy2 = one_over_2dy2*[ml -mc mr];
+%             
+% %             ux_dxdy
+%             mp1p1 = C(i+1,j+1,2)+C(i,j,2);
+%             mp1m1 = C(i+1,j-1,2)+C(i,j,2);
+%             mm1p1 = C(i-1,j+1,2)+C(i,j,2);
+%             mm1m1 = C(i-1,j-1,2)+C(i,j,2);
+%             coeffux_dxdy= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
+%             
+% %             uy_dydx
+% %             mp1p1 = C(i+1,j+1,2)+C(i,j,2);
+% %             mp1m1 = C(i+1,j-1,2)+C(i,j,2);
+% %             mm1p1 = C(i-1,j+1,2)+C(i,j,2);
+% %             mm1m1 = C(i-1,j-1,2)+C(i,j,2);
+%             coeffuy_dydx= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
+%             
+% %             uy_dxdy
+%             mp1p1 = C(i+1,j+1,4)+C(i,j,4);
+%             mp1m1 = C(i+1,j-1,4)+C(i,j,4);
+%             mm1p1 = C(i-1,j+1,4)+C(i,j,4);
+%             mm1m1 = C(i-1,j-1,4)+C(i,j,4);
+%             coeffuy_dxdy= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
+%             
+% %             ux_dydx
+% %             mp1p1 = C(i+1,j+1,4)+C(i,j,4);
+% %             mp1m1 = C(i+1,j-1,4)+C(i,j,4);
+% %             mm1p1 = C(i-1,j+1,4)+C(i,j,4);
+% %             mm1m1 = C(i-1,j-1,4)+C(i,j,4);
+%             coeffux_dydx= one_over_2dxdy4*[mp1p1 -mp1m1 -mm1p1 mm1m1];
             
 %             coeffux_dx2 = C(i,j,1)*tmp_dx2;
 %             coeffux_dy2 = C(i,j,4)*tmp_dy2;
@@ -727,8 +747,11 @@ for i=2:NX %over OX
 %             coeffuy_dy2 = C(i,j,3)*tmp_dy2;
 %             coeffuy_dxdy= C(i,j,4)*tmp_dxdy;
             
-            coeffux{i,j}=[[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
-            coeffuy{i,j}=[[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
+%             coeffux{i,j}=[[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy; coeffux_dydx];
+%             coeffuy{i,j}=[[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy; coeffuy_dydx];
+            [Aux, Auy] = construct_Zahradnik_operators(i,j,C, DELTAX, DELTAY);
+            coeffux{i,j} = Aux;
+            coeffuy{i,j} = Auy;
 %             coeffuxm(i,j,:,:) = [[coeffux_dx2 0]; [coeffux_dy2 0]; coeffux_dxdy];
 %             coeffuym(i,j,:,:) = [[coeffuy_dx2 0]; [coeffuy_dy2 0]; coeffuy_dxdy];
         end    
@@ -781,62 +804,69 @@ input('\nPress Enter to start time loop ...');
 %---  beginning of the time loop -----
 %---------------------------------
 for it = 1:NSTEP
+    
+    % calculate next step
     tic;
-    [ux, uy] = solver_mx_VTI_elastic(ux, uy, DELTAT, coeffux, coeffuy, rho, C);
-%     tic;
-%     ux(3,:,:)=ZERO;
-%     uy(3,:,:)=ZERO;
-%     for i = 2:NX
-%         for j = 2:NY
-%             rhov=rho(i,j);
-%             A_ux=coeffux{i,j};
-% %             A_ux=squeeze(coeffuxm(i,j,:,:));
-% %             A_ux=coeffuxm(i,j,:,:);
-%             value_dux_dxx=A_ux(1,1:3)*[ux(2,i-1,j); ux(2,i,j); ux(2,i+1,j)];
-%             value_dux_dyy=A_ux(2,1:3)*[ux(2,i,j-1); ux(2,i,j); ux(2,i,j+1)];
-%             value_dux_dxy=A_ux(3,:)*[ux(2,i+1,j+1); ux(2,i+1,j-1); ux(2,i-1,j+1); ux(2,i-1,j-1)];
-%             
-%             A_uy=coeffuy{i,j};
-% %             A_uy=squeeze(coeffuym(i,j,:,:));
-% %             A_uy=coeffuym(i,j,:,:);
-%             value_duy_dxx=A_uy(1,1:3)*[uy(2,i-1,j); uy(2,i,j); uy(2,i+1,j)];
-%             value_duy_dyy=A_uy(2,1:3)*[uy(2,i,j-1); uy(2,i,j); uy(2,i,j+1)];
-%             value_duy_dxy=A_uy(3,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
-%             
-%             value_dux_dyx=value_dux_dxy*C(i,j,4)/C(i,j,2);
-%             value_duy_dyx=value_duy_dxy*C(i,j,2)/C(i,j,4);
-% 
-%             %--------------------------------------------------------------------------------------------------------------------
-%             
-%             dt2rho=(DELTAT^2.d0)/rhov;
-% % 
-% %           sigmas_ux= c11v * value_dux_dxx + c13v * value_duy_dyx + c44v * value_dux_dyy + c44v * value_duy_dxy;
-% %           sigmas_uy= c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
-% 
-%             sigmas_ux= value_dux_dxx + value_duy_dyx + value_dux_dyy + value_duy_dxy;
-%             sigmas_uy= value_dux_dyx + value_duy_dxx + value_dux_dxy + value_duy_dyy;
-%             
+%     [ux, uy] = solver_mx_VTI_elastic(ux, uy, DELTAT, coeffux, coeffuy, rho, C);
+%     [ux, uy] = solver_mx_acoustic(ux, uy, DELTAT, coeffux, coeffuy, rho);
+    
 %             if WATER
 %                 sigmas_ux = value_dux_dxx + value_dux_dyy*C(i,j,1)/C(i,j,4);
 %                 sigmas_uy = value_duy_dxx*C(i,j,1)/C(i,j,4) + value_duy_dyy;
 %             end
-% 
-%             ux(3,i,j) = 2.d0 * ux(2,i,j) - ux(1,i,j) + sigmas_ux * dt2rho;
-%             uy(3,i,j) = 2.d0 * uy(2,i,j) - uy(1,i,j) + sigmas_uy * dt2rho;
-% 
-%         end
-%     end
-% 
-     t = double(it-1)*DELTAT;
-    [force_x, force_y] = source_function(f0, t0, factor, ANGLE_FORCE, t);
 
-    % define location of the source
+    ux(3,:,:)=0.d0;
+    uy(3,:,:)=0.d0;
+    
+    
+    for i = 2:NX
+        for j = 2:NY          
+            rhov=rho(i,j);
+            A_ux=coeffux{i,j};
+            value_dux_dxx=A_ux(1,1:3)*[ux(2,i-1,j); ux(2,i,j); ux(2,i+1,j)];
+            value_dux_dyy=A_ux(2,1:3)*[ux(2,i,j-1); ux(2,i,j); ux(2,i,j+1)];
+            value_dux_dxy=A_ux(3,:)*[ux(2,i+1,j+1); ux(2,i+1,j-1); ux(2,i-1,j+1); ux(2,i-1,j-1)];
+            value_dux_dyx=A_ux(4,:)*[ux(2,i+1,j+1); ux(2,i+1,j-1); ux(2,i-1,j+1); ux(2,i-1,j-1)];
+            
+            A_uy=coeffuy{i,j};
+            value_duy_dxx=A_uy(1,1:3)*[uy(2,i-1,j); uy(2,i,j); uy(2,i+1,j)];
+            value_duy_dyy=A_uy(2,1:3)*[uy(2,i,j-1); uy(2,i,j); uy(2,i,j+1)];
+            value_duy_dxy=A_uy(3,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
+            value_duy_dyx=A_uy(4,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
+%             value_dux_dyx=value_dux_dxy*C(i,j,4)/C(i,j,2);
+%             value_duy_dyx=value_duy_dxy*C(i,j,2)/C(i,j,4);
+
+            %--------------------------------------------------------------------------------------------------------------------
+            
+            dt2rho=(DELTAT^2.d0)/rhov;
+% 
+%           sigmas_ux= c11v * value_dux_dxx + c13v * value_duy_dyx + c44v * value_dux_dyy + c44v * value_duy_dxy;
+%           sigmas_uy= c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
+            
+            if WATER && nice_matrix(i,j)
+                sigmas_ux= value_dux_dxx + value_dux_dyy;
+                sigmas_uy= value_duy_dxx + value_duy_dyy;
+            else
+                sigmas_ux= value_dux_dxx + value_duy_dyx + value_dux_dyy + value_duy_dxy;
+                sigmas_uy= value_dux_dyx + value_duy_dxx + value_dux_dxy + value_duy_dyy;
+            end
+
+            ux(3,i,j) = 2.d0 * ux(2,i,j) - ux(1,i,j) + sigmas_ux * dt2rho;
+            uy(3,i,j) = 2.d0 * uy(2,i,j) - uy(1,i,j) + sigmas_uy * dt2rho;
+
+        end
+    end
+
+    % add source
+    t = double(it-1)*DELTAT;
+    [force_x, force_y] = source_function(f0, t0, factor, ANGLE_FORCE, t);
     i = ISOURCE;
     j = JSOURCE;
     rhov = rho(i,j);
     ux(3,i,j) = ux(3,i,j) + force_x * DELTAT^2.d0 / rhov;
     uy(3,i,j) = uy(3,i,j) + force_y * DELTAT^2.d0 / rhov;
-%     
+    
+    
     % Dirichlet conditions (rigid boundaries) on the edges or at the bottom of the PML layers
     ux(3,1,:) = ZERO;
     ux(3,NX+1,:) = ZERO;
@@ -849,15 +879,15 @@ for it = 1:NSTEP
 
     uy(3,:,1) = ZERO;
     uy(3,:,NY+1) = ZERO;
-% 
-%     % store seismograms
-%     if SAVE_SEISMOGRAMS
-%         for irec = 1:NREC
-%                 seisux(it,irec) = ux(3,ix_rec(irec),iy_rec(irec));
-%                 seisuy(it,irec) = uy(3,ix_rec(irec),iy_rec(irec));
-%         end   
-%     end
-%     
+
+    % store seismograms
+    if SAVE_SEISMOGRAMS
+        for irec = 1:NREC
+                seisux(it,irec) = ux(3,ix_rec(irec),iy_rec(irec));
+                seisuy(it,irec) = uy(3,ix_rec(irec),iy_rec(irec));
+        end   
+    end
+    
     %Set previous timesteps
     ux(1,:,:)=ux(2,:,:);
     ux(2,:,:)=ux(3,:,:);
