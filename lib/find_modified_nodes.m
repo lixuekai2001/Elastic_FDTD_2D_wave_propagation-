@@ -1,78 +1,96 @@
 
 function markers = find_modified_nodes(nx,nz,gr_x,gr_z ,interfaces)
-
+    nx_max = nx + 1;
+    nz_max = nz + 1;
+    
     DELTAX=gr_x(3,2) - gr_x(2,2);  %[m]
     DELTAZ=gr_z(2,3) - gr_z(2,2);  %[m]
 
     num_of_interfaces = size(interfaces,1);
-    markers=zeros(nx+1,nz+1);
+    markers=zeros(nx_max,nz_max);
 
+    hchannel = DELTAZ/3.d0;
+    wchannel = DELTAX/3.d0;
     
-%     for inter = 1:num_of_interfaces
-%         topo_szx=size(x_topo,2)-1;
-%         tgrx=round(topo_szx/nx);
-% 
-%         for i=1:nx
-%             x_trial=(1+(i-1)*tgrx):(i*tgrx);
-%             y_trial=y_topo(x_trial);    
-%             for j=1:nz
-%                 if ~isempty(find(y_trial<gr_y(i,j+1), 1)) && ~isempty(find(y_trial>gr_y(i,j), 1))
-%                     markers(i,j)=1;
-%                     markers(i,j+1)=1;
-%                     markers(i+1,j)=1;
-%                     markers(i+1,j+1)=1;
-%                  end
-%             end
-%         end
-%         fprintf('N of involved near-boundary grid points = %d  %.2f%%\n', nnz(markers), nnz(markers)*100/(nx*nz));
-%     end
-
-%     for i=1:nx+1
-%         for j=1:nz+1
-%             scatter(gr_x(i,j),gr_z(i,j)); hold on;
-%         end
-%     end
-%     drawnow;
-    
+    fprintf('Define nodes where modified operator has to be imposed\n');
+    fprintf('Number of interfaces = %d\n', num_of_interfaces);
+    fprintf('Channel height = %.4f\n', hchannel);
+    fprintf('Channel width = %.4f\n', wchannel);
     for k = 1:num_of_interfaces
-          int_x = interfaces{k,1};
-          int_z = interfaces{k,2};
-%         topo_szx=size(x_topo,2)-1;
-%         tgrx=round(topo_szx/nx);
-          range_x = int_x/DELTAX + 1;
-          range_z = int_z/DELTAZ + 1;
-          range_z_min = floor(range_z);
-          range_z_max = ceil(range_z);
+          % Construct channel around interface
+          channel_z_up = interfaces{k,2} + hchannel;
+          channel_z_down = interfaces{k,2} - hchannel;
+          channel_x_left = interfaces{k,1} - wchannel;
+          channel_x_right = interfaces{k,1} + wchannel;
           
-          len_range_x = length(range_x);
-          len_range_z_min = length(range_z_min);
+          % Left side
+          range_x_left = channel_x_left/DELTAX + 1;
+          range_x_left_min = floor(range_x_left);
+          range_x_left_max = ceil(range_x_left);
+          range_x_left_min(range_x_left_min == 0) = 1;
+          range_x_left_max(range_x_left_max > nx_max) = nx_max;
+          
+          % Right side
+          range_x_right = channel_x_right/DELTAX + 1;
+          range_x_right_min = floor(range_x_right);
+          range_x_right_max = ceil(range_x_right);
+          range_x_right_min(range_x_right_min == 0) = 1;
+          range_x_right_max(range_x_right_max > nx_max) = nx_max;
+          
+          % Up side
+          range_z_up = channel_z_up/DELTAZ + 1;
+          range_z_up_min = floor(range_z_up);
+          range_z_up_max = ceil(range_z_up);
+          range_z_up_min(range_z_up_min == 0) = 1;
+          range_z_up_max(range_z_up_max > nz_max) = nz_max;
+          
+          % Down side
+          range_z_down = channel_z_down/DELTAZ + 1;
+          range_z_down_min = floor(range_z_down);
+          range_z_down_max = ceil(range_z_down);
+          range_z_down_min(range_z_down_min == 0) = 1;
+          range_z_down_max(range_z_down_max > nz_max) = nz_max;
+          
+          len_range_x = length(range_x_right);
           for i = 1:len_range_x
-%               for j = 1:len_range_z_min
-                  markers(range_x(i), range_z_min(i)) = k;
-                  markers(range_x(i), range_z_max(i)) = k;
-                  xcoord_min = gr_x(range_x(i),range_z_min(i));
-                  zcoord_min = gr_z(range_x(i),range_z_min(i));
-                  scatter(xcoord_min,zcoord_min,'filled','r'); hold on;
+                  markers(range_x_left_min(i), range_z_up_min(i)) = k;
+                  markers(range_x_left_min(i), range_z_up_max(i)) = k;
+                  markers(range_x_left_min(i), range_z_down_min(i)) = k;
+                  markers(range_x_left_min(i), range_z_down_max(i)) = k;
+                  markers(range_x_left_max(i), range_z_up_min(i)) = k;
+                  markers(range_x_left_max(i), range_z_up_max(i)) = k;
+                  markers(range_x_left_max(i), range_z_down_min(i)) = k;
+                  markers(range_x_left_max(i), range_z_down_max(i)) = k;
                   
-                  xcoord_max = gr_x(range_x(i),range_z_max(i));
-                  zcoord_max = gr_z(range_x(i),range_z_max(i));
-                  scatter(xcoord_max,zcoord_max, 'filled','r'); hold on;
-                  drawnow;
+                  markers(range_x_right_min(i), range_z_up_min(i)) = k;
+                  markers(range_x_right_min(i), range_z_up_max(i)) = k;
+                  markers(range_x_right_min(i), range_z_down_min(i)) = k;
+                  markers(range_x_right_min(i), range_z_down_max(i)) = k;
+                  markers(range_x_right_max(i), range_z_up_min(i)) = k;
+                  markers(range_x_right_max(i), range_z_up_max(i)) = k;
+                  markers(range_x_right_max(i), range_z_down_min(i)) = k;
+                  markers(range_x_right_max(i), range_z_down_max(i)) = k;
+                  
+%                   xcoord_min = gr_x(range_x(i),range_z_up_min(i));
+%                   zcoord_min = gr_z(range_x(i),range_z_up_min(i));
+%                   scatter(xcoord_min,zcoord_min,'filled','r'); hold on;
+%                   
+%                   xcoord_max = gr_x(range_x(i),range_z_up_max(i));
+%                   zcoord_max = gr_z(range_x(i),range_z_up_max(i));
+%                   scatter(xcoord_max,zcoord_max, 'filled','r'); hold on;
+%                   
+%                   xcoord_min = gr_x(range_x(i),range_z_down_min(i));
+%                   zcoord_min = gr_z(range_x(i),range_z_down_min(i));
+%                   scatter(xcoord_min,zcoord_min,'filled','b'); hold on;
+%                   
+%                   xcoord_max = gr_x(range_x(i),range_z_down_max(i));
+%                   zcoord_max = gr_z(range_x(i),range_z_down_max(i));
+%                   scatter(xcoord_max,zcoord_max, 'filled','b'); hold on;
+%                   drawnow;
 %               end
           end
-%         for i=range_x
-%             x_trial=(1+(i-1)*tgrx):(i*tgrx);
-%             y_trial=y_topo(x_trial);    
-%             for j=1:nz
-%                  if ~isempty(find(y_trial<gr_y(i,j+1), 1)) && ~isempty(find(y_trial>gr_y(i,j), 1))
-%                     markers(i,j)=k;
-%                     markers(i,j+1)=k;
-%                     markers(i+1,j)=k;
-%                     markers(i+1,j+1)=k;
-%                  end
-%             end
-%         end
     end
-    fprintf('N of involved near-boundary grid points = %d  %.2f%%\n', nnz(markers), nnz(markers)*100/((nx+1)*(nz+1)));
+    fprintf('%d involved points or %.2f%% ', nnz(markers), nnz(markers)*100/((nx_max)*(nz_max)));
+    fprintf('...OK\n\n');
 %     imagesc(flipud(markers'));
 end

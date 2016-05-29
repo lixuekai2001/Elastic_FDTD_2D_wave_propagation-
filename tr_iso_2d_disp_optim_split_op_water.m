@@ -68,12 +68,10 @@ SAVE_VY_JPG =true;
 %Matlab 2012 + required, saves video to a current folder
 MAKE_MOVIE_VX=false;
 MAKE_MOVIE_VY=false;
-% tagv='mz2triso';
 tagv='mzm100';
 
 
 DISP_NORM=true;    %show normal displacement
-% VEL_NORM=false;     %show normal velocity
 
 DATA_TO_BINARY_FILE=false;  %save data to .txt files
 tag='mz_';
@@ -83,38 +81,8 @@ seis_tag=['mzcurvetriso2D' num2str(NX)];
 
 RED_BLUE=false;      %use custom red-blue only colormap
 COLORBAR_ON=true;   %show colorbar
-% FE_BOUNDARY=true;   %homogeneous or heterogeneous media
-% WATER = true;
 
-%--------------------------------------------------------------------------
-%--------------------------------------------------------------------------
 eps=0.00000000001d0;
-% 
-% if FE_BOUNDARY
-%      fprintf('ON. Lithological boundary\n');     
-%      % Water
-%      cp_above_eb=1500.d0;
-%      rho_above_eb=1000.d0;
-%      % Seabed
-%      cp_below_eb=3000.d0;
-%      rho_below_eb=2400.d0;
-% 
-%      fprintf('  cp_above=%.2f rho_above=%.2f\n', cp_above_eb, rho_above_eb);
-%      fprintf('  cp_below=%.2f rho_below=%.2f\n', cp_below_eb, rho_below_eb);
-% else
-%      fprintf('OFF. Lithological boundary\n');
-% %      cp_above_eb=1800.d0;
-% %      cp_below_eb=1800.d0;
-% %      rho_above_eb=2400.d0;
-% %      rho_below_eb=2400.d0;
-%      cp_above_eb=1500.d0;
-%      rho_above_eb=1000.d0;
-%      % Seabed
-%      cp_below_eb=1500.d0;
-%      rho_below_eb=1000.d0;
-%      fprintf('  cp_above=%.2f rho_above=%.2f\n', cp_above_eb, rho_above_eb);
-%      fprintf('  cp_below=%.2f rho_below=%.2f\n', cp_below_eb, rho_below_eb);
-% end
 
 %------------------------------------------------------------------
 %Check if it is possible to save video
@@ -339,8 +307,10 @@ fprintf('Create velocity model ');
 fprintf('...OK\n');
 fprintf('\n');
 
+% Put markers at nodes near the interfaces
 markers = find_modified_nodes(NX,NY,gr_x,gr_y ,interface_list);
 
+% Elastic moduli array
 fprintf('\nCreate C 6D %d elements. ',NX*NY*4);
 for i = 1:NX+1
     for j = 1:NY+1
@@ -488,7 +458,7 @@ for it = 1:NSTEP
 %           sigmas_ux= c11v * value_dux_dxx + c13v * value_duy_dyx + c44v * value_dux_dyy + c44v * value_duy_dxy;
 %           sigmas_uy= c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
             
-            if WATER && nice_matrix(i,j)
+            if nice_matrix(i,j)
                 sigmas_ux = value_dux_dxx + value_dux_dyy;
                 sigmas_uy = value_duy_dxx + value_duy_dyy;
             else
@@ -567,9 +537,9 @@ for it = 1:NSTEP
             xlabel('m');
             ylabel('m');
             set(gca,'YDir','normal');
-            if FE_BOUNDARY
-                plot(xdscr,ydscr,'m'); 
-            end
+%             if FE_BOUNDARY
+%                 plot(xdscr,ydscr,'m'); 
+%             end
             if COLORBAR_ON
                 colorbar();
 %                 set(gca, 'CLim', [minbar, maxbar]);
