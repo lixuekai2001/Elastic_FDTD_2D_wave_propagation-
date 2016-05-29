@@ -7,13 +7,15 @@ function [model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX, NZ
     DELTAX=(XMAX-XMIN)/(NX-1);  %[m]
     DELTAZ=(ZMAX-ZMIN)/(NZ-1);  %[m]
     
-    x_vec=[0:NX-1]*DELTAX;	%[m]
-    z_vec=[0:NZ-1]*DELTAZ;    %[m
+%     x_vec=[0:NX-1]*DELTAX;	%[m]
+%     z_vec=[0:NZ-1]*DELTAZ;    %[m
+
+    x_vec = linspace(XMIN,XMAX,40*NX);
     
-    x_vec1 = x_vec;
-    x_vec2 = x_vec;
-    x_vec3 = x_vec;
-    x_vec4 = x_vec;
+    x_vec1 = 40*x_vec;
+    x_vec2 = 40*x_vec;
+    x_vec3 = 40*x_vec;
+    x_vec4 = 40*x_vec;
     x_vec5 = x_vec(round(length(x_vec)/2)+5:end-5);
     
     int_1 = DELTAZ*(3*NZ/4+1) + 0*x_vec1;
@@ -28,23 +30,24 @@ function [model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX, NZ
     model_cs = zeros(NZ,NX);
 
     % Interface 1
-    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 2500.d0, 2500.d0/1.732d0, ... 
-                                                            2200.d0, x_vec1, int_1, DELTAX, DELTAZ, NZ);
+    [model_cp, model_cs, model_rho, x_vec1, int_1] = make_model_under_curve(model_cp, model_cs, model_rho, 2500.d0, 2500.d0/1.732d0, ... 
+                                                            2200.d0, x_vec1, int_1, DELTAX, DELTAZ, NX, NZ);
     % Interface 2    
-    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 2000.d0, 2000.d0/1.732d0, ... 
-                                                            2000.d0, x_vec2, int_2, DELTAX, DELTAZ, NZ);
+    [model_cp, model_cs, model_rho, x_vec2, int_2] = make_model_under_curve(model_cp, model_cs, model_rho, 2000.d0, 2000.d0/1.732d0, ... 
+                                                            2000.d0, x_vec2, int_2, DELTAX, DELTAZ, NX, NZ);
     % Interface 3
-    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 3500.d0, 3500.d0/1.732d0, ... 
-                                                            2600.d0, x_vec3, int_3, DELTAX, DELTAZ, NZ);
+    [model_cp, model_cs, model_rho, x_vec3, int_3] = make_model_under_curve(model_cp, model_cs, model_rho, 3500.d0, 3500.d0/1.732d0, ... 
+                                                            2600.d0, x_vec3, int_3, DELTAX, DELTAZ, NX, NZ);
     % Interface 4
-    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 3000.d0, 3000.d0/1.732d0, ... 
-                                                            2300.d0, x_vec4, int_4, DELTAX, DELTAZ, NZ);
+    [model_cp, model_cs, model_rho, x_vec4, int_4] = make_model_under_curve(model_cp, model_cs, model_rho, 3000.d0, 3000.d0/1.732d0, ... 
+                                                            2300.d0, x_vec4, int_4, DELTAX, DELTAZ, NX, NZ);
     % Interface 5    
-    [model_cp, model_cs, model_rho] = make_model_under_curve(model_cp, model_cs, model_rho, 4500.d0, 4500.d0/1.732d0, ... 
-                                                        2800.d0, x_vec5, int_5, DELTAX, DELTAZ, NZ);
+    [model_cp, model_cs, model_rho, x_vec5, int_5] = make_model_under_curve(model_cp, model_cs, model_rho, 4500.d0, 4500.d0/1.732d0, ... 
+                                                        2800.d0, x_vec5, int_5, DELTAX, DELTAZ, NX, NZ);
 
     % Fill up interfaces list
     interface_list = cell(n_interfaces,2);
+
     interface_list{1,1} = x_vec1;
     interface_list{1,2} = int_1;
     

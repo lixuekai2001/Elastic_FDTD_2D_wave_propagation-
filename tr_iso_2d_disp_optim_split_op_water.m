@@ -6,7 +6,7 @@ clc;        %clear console
 clear all;  %clear all variables
 
 % total number of grid points in each direction of the grid
- mg= 2;
+ mg= 1;
  NX =100*mg;  %X
  NY =100*mg;  %Y
  
@@ -15,7 +15,7 @@ clear all;  %clear all variables
  
  % time step in seconds
 %  DELTAT = 0.5d-4;	%[sec] 
- DELTAT = 0.1d-2;	%[sec] 
+ DELTAT = 0.2d-2;	%[sec] 
 %  DELTAT = DELTAT/mg;
  % total number of time steps
  %  NSTEP = 2000;
@@ -70,7 +70,7 @@ SAVE_VY_JPG =true;
 %because video is being created by capturing of current frame
 %Matlab 2012 + required, saves video to a current folder
 MAKE_MOVIE_VX=false;
-MAKE_MOVIE_VY=true;
+MAKE_MOVIE_VY=false;
 tagv='mzm100';
 
 
@@ -84,7 +84,7 @@ seis_tag=['mzcurvetriso2D' num2str(NX)];
 
 RED_BLUE=false;      %use custom red-blue only colormap
 COLORBAR_ON=true;   %show colorbar
-
+PLOT_INTERFACES = true;
 eps=0.00000000001d0;
 
 %------------------------------------------------------------------
@@ -305,10 +305,14 @@ fprintf('...OK\n')
 C=zeros(NX+1,NY+1,4);
 nice_matrix = zeros(NX+1,NY+1);
 
-fprintf('Create velocity model ');
+% fprintf('Create velocity model ');
+tic;
 [model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX+1, NY+1, XMAX, XMIN, YMAX, YMIN);
-fprintf('...OK\n');
-fprintf('\n');
+% fprintf('...OK\n');
+% fprintf('\n');
+toc;
+
+number_of_interfaces = length(interface_list);
 
 % Put markers at nodes near the interfaces
 markers = find_modified_nodes(NX,NY,gr_x,gr_y ,interface_list);
@@ -365,28 +369,28 @@ tic;
 for i=2:NX %over OX
     for j=2:NY %over OY
         % construct modified operators
-%         if markers(i,j)>0
+        if markers(i,j)>0
 %             num_of_interface = markers(i,j);
 %             xdscr = interface_list{num_of_interface,1};
 %             ydscr = interface_list{num_of_interface,2};
-%             
-%             try
-%             [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
-%             catch
-%                 fprintf('%d %d %d\n', num_of_interface,i, j);
-%             end
-%             Aux(1,:) = C(i,j,1)*Aux(1,:);
-%             Aux(2,:) = C(i,j,4)*Aux(2,:);
-%             Aux(3,:) = C(i,j,2)*Aux(3,:);
-%             Aux(4,:) = C(i,j,4)*Aux(4,:);
-%             coeffux{i,j}=Aux;
-%             
-%             Auy(1,:) = C(i,j,4)*Auy(1,:);
-%             Auy(2,:) = C(i,j,3)*Auy(2,:);
-%             Auy(3,:) = C(i,j,4)*Auy(3,:);
-%             Auy(4,:) = C(i,j,2)*Auy(4,:);
-%             coeffuy{i,j}=Auy;
-%         end
+            
+            try
+            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
+            catch
+                fprintf('%d %d %d INSTABILITY\n', num_of_interface,i, j);
+            end
+            Aux(1,:) = C(i,j,1)*Aux(1,:);
+            Aux(2,:) = C(i,j,4)*Aux(2,:);
+            Aux(3,:) = C(i,j,2)*Aux(3,:);
+            Aux(4,:) = C(i,j,4)*Aux(4,:);
+            coeffux{i,j}=Aux;
+            
+            Auy(1,:) = C(i,j,4)*Auy(1,:);
+            Auy(2,:) = C(i,j,3)*Auy(2,:);
+            Auy(3,:) = C(i,j,4)*Auy(3,:);
+            Auy(4,:) = C(i,j,2)*Auy(4,:);
+            coeffuy{i,j}=Auy;
+        end
         
         %if any conditions were used - use conventional heterogeneous operator
         if isempty(coeffux{i,j}) && isempty(coeffuy{i,j})
@@ -548,9 +552,13 @@ for it = 1:NSTEP
             xlabel('m');
             ylabel('m');
             set(gca,'YDir','normal');
-%             if FE_BOUNDARY
-%                 plot(xdscr,ydscr,'m'); 
-%             end
+            if PLOT_INTERFACES
+                for int_cnt = 1:number_of_interfaces
+                    x_interf = interface_list{int_cnt,1};
+                    z_interf = interface_list{int_cnt,2};
+                    plot(x_interf,z_interf,'Color','white','LineWidth',2); hold on;
+                end
+            end
             if COLORBAR_ON
                 colorbar();
 %                 set(gca, 'CLim', [minbar, maxbar]);

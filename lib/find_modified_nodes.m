@@ -1,13 +1,13 @@
 
-function markers = find_modified_nodes(nx,nz,gr_x,gr_z ,interfaces)
-    nx_max = nx + 1;
-    nz_max = nz + 1;
+function markers = find_modified_nodes(NX,NZ,gr_x,gr_z ,interfaces)
+    NX_max = NX + 1;
+    NZ_max = NZ + 1;
     
     DELTAX=gr_x(3,2) - gr_x(2,2);  %[m]
     DELTAZ=gr_z(2,3) - gr_z(2,2);  %[m]
 
     num_of_interfaces = size(interfaces,1);
-    markers=zeros(nx_max,nz_max);
+    markers=zeros(NX_max,NZ_max);
 
     hchannel = DELTAZ/3.d0;
     wchannel = DELTAX/3.d0;
@@ -28,28 +28,28 @@ function markers = find_modified_nodes(nx,nz,gr_x,gr_z ,interfaces)
           range_x_left_min = floor(range_x_left);
           range_x_left_max = ceil(range_x_left);
           range_x_left_min(range_x_left_min == 0) = 1;
-          range_x_left_max(range_x_left_max > nx_max) = nx_max;
+          range_x_left_max(range_x_left_max > NX_max) = NX_max;
           
           % Right side
           range_x_right = channel_x_right/DELTAX + 1;
           range_x_right_min = floor(range_x_right);
           range_x_right_max = ceil(range_x_right);
           range_x_right_min(range_x_right_min == 0) = 1;
-          range_x_right_max(range_x_right_max > nx_max) = nx_max;
+          range_x_right_max(range_x_right_max > NX_max) = NX_max;
           
           % Up side
           range_z_up = channel_z_up/DELTAZ + 1;
           range_z_up_min = floor(range_z_up);
           range_z_up_max = ceil(range_z_up);
           range_z_up_min(range_z_up_min == 0) = 1;
-          range_z_up_max(range_z_up_max > nz_max) = nz_max;
+          range_z_up_max(range_z_up_max > NZ_max) = NZ_max;
           
           % Down side
           range_z_down = channel_z_down/DELTAZ + 1;
           range_z_down_min = floor(range_z_down);
           range_z_down_max = ceil(range_z_down);
           range_z_down_min(range_z_down_min == 0) = 1;
-          range_z_down_max(range_z_down_max > nz_max) = nz_max;
+          range_z_down_max(range_z_down_max > NZ_max) = NZ_max;
           
           len_range_x = length(range_x_right);
           for i = 1:len_range_x
@@ -90,7 +90,7 @@ function markers = find_modified_nodes(nx,nz,gr_x,gr_z ,interfaces)
 %               end
           end
     end
-    fprintf('%d involved points or %.2f%% ', nnz(markers), nnz(markers)*100/((nx_max)*(nz_max)));
+    fprintf('%d involved points or %.2f%% ', nnz(markers), nnz(markers)*100/((NX_max)*(NZ_max)));
     fprintf('...OK\n\n');
 %     imagesc(flipud(markers'));
 end
