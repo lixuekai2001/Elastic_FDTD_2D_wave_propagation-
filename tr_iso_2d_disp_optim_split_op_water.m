@@ -6,7 +6,7 @@ clc;        %clear console
 clear all;  %clear all variables
 
 % total number of grid points in each direction of the grid
- mg= 1;
+ mg= 2;
  NX =100*mg;  %X
  NY =100*mg;  %Y
  
@@ -15,7 +15,7 @@ clear all;  %clear all variables
  
  % time step in seconds
 %  DELTAT = 0.5d-4;	%[sec] 
- DELTAT = 0.2d-2;	%[sec] 
+ DELTAT = 0.1d-2;	%[sec] 
 %  DELTAT = DELTAT/mg;
  % total number of time steps
  %  NSTEP = 2000;
@@ -37,6 +37,9 @@ YMIN=0.d0;
 
 DELTAX=(XMAX-XMIN)/NX; %[m]
 DELTAY=(YMAX-YMIN)/NY; %[m]
+
+Cerj_thick = floor(0.15*NX);
+Cerjan_rate = 0.015*15/Cerj_thick;
 %--------------------------------------------------------------------------
 %---------------------- FLAGS ---------------------------------------------
 % total number of time steps
@@ -67,7 +70,7 @@ SAVE_VY_JPG =true;
 %because video is being created by capturing of current frame
 %Matlab 2012 + required, saves video to a current folder
 MAKE_MOVIE_VX=false;
-MAKE_MOVIE_VY=false;
+MAKE_MOVIE_VY=true;
 tagv='mzm100';
 
 
@@ -362,20 +365,28 @@ tic;
 for i=2:NX %over OX
     for j=2:NY %over OY
         % construct modified operators
-        if markers(i,j)>0
-            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
-            Aux(1,:) = C(i,j,1)*Aux(1,:);
-            Aux(2,:) = C(i,j,4)*Aux(2,:);
-            Aux(3,:) = C(i,j,2)*Aux(3,:);
-            Aux(4,:) = C(i,j,4)*Aux(4,:);
-            coeffux{i,j}=Aux;
-            
-            Auy(1,:) = C(i,j,4)*Auy(1,:);
-            Auy(2,:) = C(i,j,3)*Auy(2,:);
-            Auy(3,:) = C(i,j,4)*Auy(3,:);
-            Auy(4,:) = C(i,j,2)*Auy(4,:);
-            coeffuy{i,j}=Auy;
-        end
+%         if markers(i,j)>0
+%             num_of_interface = markers(i,j);
+%             xdscr = interface_list{num_of_interface,1};
+%             ydscr = interface_list{num_of_interface,2};
+%             
+%             try
+%             [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
+%             catch
+%                 fprintf('%d %d %d\n', num_of_interface,i, j);
+%             end
+%             Aux(1,:) = C(i,j,1)*Aux(1,:);
+%             Aux(2,:) = C(i,j,4)*Aux(2,:);
+%             Aux(3,:) = C(i,j,2)*Aux(3,:);
+%             Aux(4,:) = C(i,j,4)*Aux(4,:);
+%             coeffux{i,j}=Aux;
+%             
+%             Auy(1,:) = C(i,j,4)*Auy(1,:);
+%             Auy(2,:) = C(i,j,3)*Auy(2,:);
+%             Auy(3,:) = C(i,j,4)*Auy(3,:);
+%             Auy(4,:) = C(i,j,2)*Auy(4,:);
+%             coeffuy{i,j}=Auy;
+%         end
         
         %if any conditions were used - use conventional heterogeneous operator
         if isempty(coeffux{i,j}) && isempty(coeffuy{i,j})
@@ -501,9 +512,9 @@ for it = 1:NSTEP
                 seisuy(it,irec) = uy(3,ix_rec(irec),iy_rec(irec));
         end   
     end
-    
+
     % Implement exponential absorbing Cerjan boundary conditions
-    [ux, uy] = Cerjan_absorbing_BC(ux, uy, 0.025, [25 25], [25 25]);
+    [ux, uy] = Cerjan_absorbing_BC(ux, uy, Cerjan_rate, [Cerj_thick Cerj_thick], [Cerj_thick Cerj_thick]);
     
     %Set previous timesteps
     ux(1,:,:)=ux(2,:,:);

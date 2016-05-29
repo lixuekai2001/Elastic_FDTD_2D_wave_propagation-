@@ -14,7 +14,7 @@ function check_CFL(cp, DELTAT, DELTAX, DELTAY)
   fprintf('Courant number = %.4f',Courant_number);
 
   if Courant_number > 1.d0 
-      fprintf('...FAIL. Time step is too large, simulation will be unstable.');
+      fprintf('...FAIL. Time step is too large, simulation will be unstable.\n');
       check = false;
   else
     fprintf('...OK\n');

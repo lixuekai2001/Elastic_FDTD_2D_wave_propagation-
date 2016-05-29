@@ -2,6 +2,9 @@
 
 function [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho)
         % Construct eta0 and eta1 arrays for each marked point
+%         if i==56 && j==4
+%             disp('Here');
+%         end
         
         dx = gr_x(i,j) - gr_x(i-1,j);
         dy = gr_y(i,j) - gr_y(i,j-1);
