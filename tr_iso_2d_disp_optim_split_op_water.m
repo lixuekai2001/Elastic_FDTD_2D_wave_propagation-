@@ -6,16 +6,16 @@ clc;        %clear console
 clear all;  %clear all variables
 
 % total number of grid points in each direction of the grid
- mg= 1;
+ mg= 2;
  NX =100*mg;  %X
  NY =100*mg;  %Y
  
 %  time=0.02d0;
-  time=0.8d0;
+  time=1.0d0;
  
  % time step in seconds
 %  DELTAT = 0.5d-4;	%[sec] 
- DELTAT = 0.2d-2;	%[sec] 
+ DELTAT = 0.1d-2;	%[sec] 
 %  DELTAT = DELTAT/mg;
  % total number of time steps
  %  NSTEP = 2000;
@@ -46,7 +46,7 @@ Cerjan_rate = 0.015*15/Cerj_thick;
 % NSTEP = 350;
 % NSTEP=2000;
 % display information on the screen from time to time
-IT_DISPLAY = 25;
+IT_DISPLAY = 10;
 
 %Take instant snapshot
 SNAPSHOT=false;
@@ -70,14 +70,14 @@ SAVE_VY_JPG =true;
 %because video is being created by capturing of current frame
 %Matlab 2012 + required, saves video to a current folder
 MAKE_MOVIE_VX=false;
-MAKE_MOVIE_VY=false;
-tagv='mzm100';
+MAKE_MOVIE_VY=true;
+tagv='video';
 
 
 DISP_NORM=true;    %show normal displacement
 
-DATA_TO_BINARY_FILE=false;  %save data to .txt files
-tag='mz_';
+DATA_TO_BINARY_FILE=true;  %save data to .txt files
+tag='f12_';
 
 SAVE_SEISMOGRAMS=false;
 seis_tag=['mzcurvetriso2D' num2str(NX)];
@@ -109,7 +109,7 @@ ny_vec=[0:NY]*DELTAY;
 % density = 2800.d0;	%[kg/m3]
 
 % parameters for the source
-f0 = 8.d0;
+f0 = 12.d0;
 t0 = 1.20d0 / f0;
 factor = 1.d10;
 
@@ -137,7 +137,7 @@ STABILITY_THRESHOLD = 1.d+25;
 % ysource=round(NY/4)*DELTAY;
 
 xsource=round(NX/2)*DELTAX;
-ysource=round(0.8*NY)*DELTAY;
+ysource=round(0.85*NY)*DELTAY;
 
 dist = HUGEVAL;
 for j = 2:NY
@@ -281,22 +281,22 @@ for i=1:NX+1
 end
 fprintf('...OK\n');
   
-fprintf('Find closest grid nodes')  
-% curvature=0.2;
-curvature=0.0000001;
-% xdscr=[0:NX]*DELTAX;
-ymid=DELTAY/3.d0+3*(YMAX+YMIN)/5.d0;
-xdscr=linspace(0,XMAX+0.1*DELTAX,(40*NX)+1);
-ydscr=-curvature*YMAX*sin(1.25*PI*xdscr/max(xdscr)+0.25*PI);
-% ydscr=YMAX*ydscr/4;
-ydscr=ymid+ydscr;
-% ydscr=abs(min(ydscr))+ydscr+YMAX/4;
-%calculate involved grid points, descritized coordinates of curve,
-%normal vectors, coordinates of middles of the descritized samples.
-%All the output variables are vectors
-[markers, xt_dis, yt_dis, nvecx, nvecy, xmn, ymn] = func_p_find_closest_grid_nodes(NX,NY,1,gr_x,gr_y ,xdscr, ydscr);
- clearvars xt_dis nvecx nvecy yt_dis xmn ymn;  
-fprintf('...OK\n')
+% fprintf('Find closest grid nodes')  
+% % curvature=0.2;
+% curvature=0.0000001;
+% % xdscr=[0:NX]*DELTAX;
+% ymid=DELTAY/3.d0+3*(YMAX+YMIN)/5.d0;
+% xdscr=linspace(0,XMAX+0.1*DELTAX,(40*NX)+1);
+% ydscr=-curvature*YMAX*sin(1.25*PI*xdscr/max(xdscr)+0.25*PI);
+% % ydscr=YMAX*ydscr/4;
+% ydscr=ymid+ydscr;
+% % ydscr=abs(min(ydscr))+ydscr+YMAX/4;
+% %calculate involved grid points, descritized coordinates of curve,
+% %normal vectors, coordinates of middles of the descritized samples.
+% %All the output variables are vectors
+% [markers, xt_dis, yt_dis, nvecx, nvecy, xmn, ymn] = func_p_find_closest_grid_nodes(NX,NY,1,gr_x,gr_y ,xdscr, ydscr);
+%  clearvars xt_dis nvecx nvecy yt_dis xmn ymn;  
+% fprintf('...OK\n')
 
 
 %------------------------------------------------------------------------
@@ -369,28 +369,28 @@ tic;
 for i=2:NX %over OX
     for j=2:NY %over OY
         % construct modified operators
-        if markers(i,j)>0
+%         if markers(i,j)>0
 %             num_of_interface = markers(i,j);
 %             xdscr = interface_list{num_of_interface,1};
 %             ydscr = interface_list{num_of_interface,2};
-            
-            try
-            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
-            catch
-                fprintf('%d %d %d INSTABILITY\n', num_of_interface,i, j);
-            end
-            Aux(1,:) = C(i,j,1)*Aux(1,:);
-            Aux(2,:) = C(i,j,4)*Aux(2,:);
-            Aux(3,:) = C(i,j,2)*Aux(3,:);
-            Aux(4,:) = C(i,j,4)*Aux(4,:);
-            coeffux{i,j}=Aux;
-            
-            Auy(1,:) = C(i,j,4)*Auy(1,:);
-            Auy(2,:) = C(i,j,3)*Auy(2,:);
-            Auy(3,:) = C(i,j,4)*Auy(3,:);
-            Auy(4,:) = C(i,j,2)*Auy(4,:);
-            coeffuy{i,j}=Auy;
-        end
+%             
+% %             try
+%             [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
+% %             catch
+% %                 fprintf('%d %d %d INSTABILITY\n', num_of_interface,i, j);
+% %             end
+%             Aux(1,:) = C(i,j,1)*Aux(1,:);
+%             Aux(2,:) = C(i,j,4)*Aux(2,:);
+%             Aux(3,:) = C(i,j,2)*Aux(3,:);
+%             Aux(4,:) = C(i,j,4)*Aux(4,:);
+%             coeffux{i,j}=Aux;
+%             
+%             Auy(1,:) = C(i,j,4)*Auy(1,:);
+%             Auy(2,:) = C(i,j,3)*Auy(2,:);
+%             Auy(3,:) = C(i,j,4)*Auy(3,:);
+%             Auy(4,:) = C(i,j,2)*Auy(4,:);
+%             coeffuy{i,j}=Auy;
+%         end
         
         %if any conditions were used - use conventional heterogeneous operator
         if isempty(coeffux{i,j}) && isempty(coeffuy{i,j})
@@ -537,21 +537,16 @@ for it = 1:NSTEP
             clf;	%clear current frame
             if DISP_NORM
                 u=sqrt(ux(3,:,:).^2+uy(3,:,:).^2);
-            elseif VEL_NORM
-                u=sqrt((velx/max(max(velx))).^2+(vely/max(max(vely))).^2);
-            else
-                if SAVE_VX_JPG 
-                    u=ux(3,:,:); 
-                elseif SAVE_VY_JPG
-                    u=uy(3,:,:);
-                end
+            elseif SAVE_VX_JPG 
+                u=ux(3,:,:); 
+            elseif SAVE_VY_JPG
+                u=uy(3,:,:);
             end
-            %velnorm(ISOURCE-1:ISOURCE+1,JSOURCE-1:JSOURCE+1)=ZERO;
-            imagesc(nx_vec,ny_vec,squeeze(u(1,:,:))'); hold on;
-            title(['Step = ',num2str(it),' Time: ',sprintf('%.4f',single((it-1)*DELTAT)),' sec']); 
-            xlabel('m');
-            ylabel('m');
-            set(gca,'YDir','normal');
+            u = squeeze(u(1,:,:))';
+            timee = single((it-1)*DELTAT);
+            ptitle = ['Step = ',num2str(it),' Time: ',sprintf('%.4f',timee),' sec']; 
+            imagescc(nx_vec, ny_vec, u, ptitle,'m','m', 1);
+            
             if PLOT_INTERFACES
                 for int_cnt = 1:number_of_interfaces
                     x_interf = interface_list{int_cnt,1};
@@ -586,24 +581,19 @@ for it = 1:NSTEP
             end
             
             if DATA_TO_BINARY_FILE
-                filename=[tag 'u_' 'disp_t_' num2str(it) '.txt'];
-                dlmwrite(filename, u);
+                filename=[tag 'u_' num2str(it) '.mat'];
+%                 dlmwrite(filename, u);
+                save(filename, 'u', 'timee','f0','factor', 'DELTAT','DELTAX','DELTAY','NX','NY','XMAX','YMAX','interface_list');
                 fprintf('Data file %s saved to %s\n',filename, pwd);
             end
         end
         fprintf('\n'); 
-        if it==3100
-            input('Next?');
-        end
-    end
-    if PAUSE_ON
-        pause(pause_time);
     end
 end
   % end of time loop
 
   
-  current_folder=pwd;	%current path
+  current_folder = pwd;     %current path
   if MAKE_MOVIE_VX
 	  close(vidObj_vx);     %- close video file
       printf('Video %s saved in %s\n',movie_name_vx,current_folder);

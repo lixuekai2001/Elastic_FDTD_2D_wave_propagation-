@@ -12,10 +12,10 @@ function [model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX, NZ
 
     x_vec = linspace(XMIN,XMAX,40*NX);
     
-    x_vec1 = 40*x_vec;
-    x_vec2 = 40*x_vec;
-    x_vec3 = 40*x_vec;
-    x_vec4 = 40*x_vec;
+    x_vec1 = 10*x_vec;
+    x_vec2 = 10*x_vec;
+    x_vec3 = 10*x_vec;
+    x_vec4 = 10*x_vec;
     x_vec5 = x_vec(round(length(x_vec)/2)+5:end-5);
     
     int_1 = DELTAZ*(3*NZ/4+1) + 0*x_vec1;

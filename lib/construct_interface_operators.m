@@ -2,15 +2,13 @@
 
 function [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho)
         % Construct eta0 and eta1 arrays for each marked point
-%         if i==56 && j==4
-%             disp('Here');
-%         end
         
         dx = gr_x(i,j) - gr_x(i-1,j);
         dy = gr_y(i,j) - gr_y(i,j-1);
         
         ZERO = 0.d0;
-        
+        max_size_xdscr = max(size(xdscr));
+        min_size_xdscr = min(size(xdscr));
         pt0x=gr_x(i,j);
         pt0y=gr_y(i,j);
         ctr=0;
@@ -22,6 +20,7 @@ function [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydsc
                     x_trial=linspace(pt0x,pt1x,20);
                     y_trial=linspace(pt0y,pt1y,20);
                     [xi,yi]=curveintersect(x_trial,y_trial,xdscr, ydscr);
+                    
                     if ~isempty([xi,yi]) % check if there is an intersection
                         if size(xi,1)*size(xi,2)>1  %get rid of multiple intersections
                             xi=xi(1);
@@ -54,19 +53,34 @@ function [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydsc
                                 arr_eta0x(i,j,ctr)=abs((xi-pt0x)/delta_x);
                                 arr_eta1x(i,j,ctr)=1.d0-arr_eta0x(i,j,ctr);
                         end
-
+                        if length(xdscr)==49 && i==99 && j==2 && ctr ==3
+                            disp('Here');
+                        end
                         %Define normal in point
                         tmp=abs(xdscr-xi);
                         [~,idx]=min(tmp);
                         if idx==1 
                             idx=2;
+                        elseif idx >= max_size_xdscr
+                            idx = max_size_xdscr - 1;
+                        elseif idx <= min_size_xdscr
+                            idx = min_size_xdscr - 1;
                         end
                         p1x=xdscr(idx-1); p2x=xi; p3x=xdscr(idx+1);
-                        p1y=ydscr(idx-1); p2y=yi; p3y=ydscr(idx+1);
+                        p1y=ydscr(idx-1); p2y=yi; p3y=ydscr(idx+1);                 
+%                         if ((p1x==p2x) && (p1y==p2y)) || ((p3x==p2x) && (p3y==p2y))
+%                             p1x=xdscr(idx-2);
+%                             p1y=ydscr(idx-2);
+%                         end
                         s12 = sqrt((p2x-p1x)^2+(p2y-p1y)^2);
                         s23 = sqrt((p3x-p2x)^2+(p3y-p2y)^2);
                         dxds = (s23^2*(p2x-p1x)+s12^2*(p3x-p2x))/(s12*s23*(s12+s23));
                         dyds = (s23^2*(p2y-p1y)+s12^2*(p3y-p2y))/(s12*s23*(s12+s23));
+                        if isnan(dxds) || isnan(dyds)
+                           s13 = sqrt((p3x-p1x)^2+(p3y-p1y)^2);
+                           dxds = (p3x - p1x)/s13;
+                           dyds = (p3y - p1y)/s13;
+                        end
                         tvx=dxds;
                         tvy=dyds;
                         nvx=-dyds;
