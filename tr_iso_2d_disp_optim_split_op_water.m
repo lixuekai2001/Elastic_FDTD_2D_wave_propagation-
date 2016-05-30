@@ -46,7 +46,7 @@ Cerjan_rate = 0.015*15/Cerj_thick;
 % NSTEP = 350;
 % NSTEP=2000;
 % display information on the screen from time to time
-IT_DISPLAY = 10;
+IT_DISPLAY = 20;
 
 %Take instant snapshot
 SNAPSHOT=false;
@@ -70,14 +70,14 @@ SAVE_VY_JPG =true;
 %because video is being created by capturing of current frame
 %Matlab 2012 + required, saves video to a current folder
 MAKE_MOVIE_VX=false;
-MAKE_MOVIE_VY=true;
+MAKE_MOVIE_VY=false;
 tagv='video';
 
 
 DISP_NORM=true;    %show normal displacement
 
 DATA_TO_BINARY_FILE=true;  %save data to .txt files
-tag='f12_';
+tag='1int_f12_';
 
 SAVE_SEISMOGRAMS=false;
 seis_tag=['mzcurvetriso2D' num2str(NX)];
@@ -266,38 +266,20 @@ end
       CMAP = make_red_blue_colormap();
       colormap(CMAP);
      fprintf('...OK\n');   
-  end
+ end
+  
   
 fprintf('Cartesian grid generation');
-%grid point coordinates in physical domain
-gr_x=zeros(NX+1,NY+1);
+gr_x=zeros(NX+1,NY+1);  %grid point coordinates in physical domain
 gr_y=zeros(NX+1,NY+1);
-%calculate cartesian grid points
+
 for i=1:NX+1
     for j=1:NY+1
         gr_x(i,j)=(i-1)*DELTAX;
         gr_y(i,j)=(j-1)*DELTAY;    
     end    
-end
+end         %calculate cartesian grid points
 fprintf('...OK\n');
-  
-% fprintf('Find closest grid nodes')  
-% % curvature=0.2;
-% curvature=0.0000001;
-% % xdscr=[0:NX]*DELTAX;
-% ymid=DELTAY/3.d0+3*(YMAX+YMIN)/5.d0;
-% xdscr=linspace(0,XMAX+0.1*DELTAX,(40*NX)+1);
-% ydscr=-curvature*YMAX*sin(1.25*PI*xdscr/max(xdscr)+0.25*PI);
-% % ydscr=YMAX*ydscr/4;
-% ydscr=ymid+ydscr;
-% % ydscr=abs(min(ydscr))+ydscr+YMAX/4;
-% %calculate involved grid points, descritized coordinates of curve,
-% %normal vectors, coordinates of middles of the descritized samples.
-% %All the output variables are vectors
-% [markers, xt_dis, yt_dis, nvecx, nvecy, xmn, ymn] = func_p_find_closest_grid_nodes(NX,NY,1,gr_x,gr_y ,xdscr, ydscr);
-%  clearvars xt_dis nvecx nvecy yt_dis xmn ymn;  
-% fprintf('...OK\n')
-
 
 %------------------------------------------------------------------------
 %     CREATE VELOCITY MODEL
@@ -307,7 +289,7 @@ nice_matrix = zeros(NX+1,NY+1);
 
 % fprintf('Create velocity model ');
 tic;
-[model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX+1, NY+1, XMAX, XMIN, YMAX, YMIN);
+[model_cp, model_cs, model_rho, interface_list] = make_vel_model2(NX+1, NY+1, XMAX, XMIN, YMAX, YMIN);
 % fprintf('...OK\n');
 % fprintf('\n');
 toc;
@@ -348,7 +330,7 @@ end
 fprintf('C(i,j,4) of size: %s  ...OK\n',num2str(size(C)));
 fprintf('\n');
 
-% ?heck anisotropic material stability
+% Check anisotropic material stability
 check_material_stability(C);
 
 % Check Courant stability condition
@@ -369,28 +351,28 @@ tic;
 for i=2:NX %over OX
     for j=2:NY %over OY
         % construct modified operators
-%         if markers(i,j)>0
-%             num_of_interface = markers(i,j);
-%             xdscr = interface_list{num_of_interface,1};
-%             ydscr = interface_list{num_of_interface,2};
-%             
-% %             try
-%             [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
-% %             catch
-% %                 fprintf('%d %d %d INSTABILITY\n', num_of_interface,i, j);
-% %             end
-%             Aux(1,:) = C(i,j,1)*Aux(1,:);
-%             Aux(2,:) = C(i,j,4)*Aux(2,:);
-%             Aux(3,:) = C(i,j,2)*Aux(3,:);
-%             Aux(4,:) = C(i,j,4)*Aux(4,:);
-%             coeffux{i,j}=Aux;
-%             
-%             Auy(1,:) = C(i,j,4)*Auy(1,:);
-%             Auy(2,:) = C(i,j,3)*Auy(2,:);
-%             Auy(3,:) = C(i,j,4)*Auy(3,:);
-%             Auy(4,:) = C(i,j,2)*Auy(4,:);
-%             coeffuy{i,j}=Auy;
-%         end
+        if markers(i,j)>0
+            num_of_interface = markers(i,j);
+            xdscr = interface_list{num_of_interface,1};
+            ydscr = interface_list{num_of_interface,2};
+            
+%             try
+            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
+%             catch
+%                 fprintf('%d %d %d INSTABILITY\n', num_of_interface,i, j);
+%             end
+            Aux(1,:) = C(i,j,1)*Aux(1,:);
+            Aux(2,:) = C(i,j,4)*Aux(2,:);
+            Aux(3,:) = C(i,j,2)*Aux(3,:);
+            Aux(4,:) = C(i,j,4)*Aux(4,:);
+            coeffux{i,j}=Aux;
+            
+            Auy(1,:) = C(i,j,4)*Auy(1,:);
+            Auy(2,:) = C(i,j,3)*Auy(2,:);
+            Auy(3,:) = C(i,j,4)*Auy(3,:);
+            Auy(4,:) = C(i,j,2)*Auy(4,:);
+            coeffuy{i,j}=Auy;
+        end
         
         %if any conditions were used - use conventional heterogeneous operator
         if isempty(coeffux{i,j}) && isempty(coeffuy{i,j})

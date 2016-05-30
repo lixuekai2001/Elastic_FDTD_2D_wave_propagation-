@@ -7,15 +7,12 @@ function [model_cp, model_cs, model_rho, interface_list] = make_vel_model(NX, NZ
     DELTAX=(XMAX-XMIN)/(NX-1);  %[m]
     DELTAZ=(ZMAX-ZMIN)/(NZ-1);  %[m]
     
-%     x_vec=[0:NX-1]*DELTAX;	%[m]
-%     z_vec=[0:NZ-1]*DELTAZ;    %[m
-
-    x_vec = linspace(XMIN,XMAX,40*NX);
+    x_vec = linspace(XMIN,XMAX,10*NX);
     
-    x_vec1 = 10*x_vec;
-    x_vec2 = 10*x_vec;
-    x_vec3 = 10*x_vec;
-    x_vec4 = 10*x_vec;
+    x_vec1 = x_vec;
+    x_vec2 = x_vec;
+    x_vec3 = x_vec;
+    x_vec4 = x_vec;
     x_vec5 = x_vec(round(length(x_vec)/2)+5:end-5);
     
     int_1 = DELTAZ*(3*NZ/4+1) + 0*x_vec1;

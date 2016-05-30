@@ -53,9 +53,9 @@ function [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydsc
                                 arr_eta0x(i,j,ctr)=abs((xi-pt0x)/delta_x);
                                 arr_eta1x(i,j,ctr)=1.d0-arr_eta0x(i,j,ctr);
                         end
-                        if length(xdscr)==49 && i==99 && j==2 && ctr ==3
-                            disp('Here');
-                        end
+%                         if length(xdscr)==49 && i==99 && j==2 && ctr ==3
+%                             disp('Here');
+%                         end
                         %Define normal in point
                         tmp=abs(xdscr-xi);
                         [~,idx]=min(tmp);
@@ -81,9 +81,9 @@ function [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydsc
                            dxds = (p3x - p1x)/s13;
                            dyds = (p3y - p1y)/s13;
                         end
-                        tvx=dxds;
-                        tvy=dyds;
-                        nvx=-dyds;
+%                         tvx=dxds; % tangent components
+%                         tvy=dyds;
+                        nvx=-dyds;  % normal components
                         nvy=dxds;
                     else  % if there is no intersection
                             arr_eta1x(i,j,ctr)=1.d0*abs(ik);
