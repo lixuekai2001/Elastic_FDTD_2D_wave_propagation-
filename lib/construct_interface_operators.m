@@ -86,10 +86,12 @@ function [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydsc
                         nvx=-dyds;  % normal components
                         nvy=dxds;
                     else  % if there is no intersection
-                            arr_eta1x(i,j,ctr)=1.d0*abs(ik);
-                            arr_eta1y(i,j,ctr)=1.d0*abs(jk);
-                            arr_eta0x(i,j,ctr)=abs(1.d0*ik)*abs((1.d0-arr_eta1x(i,j,ctr)));
-                            arr_eta0y(i,j,ctr)=abs(1.d0*jk)*abs((1.d0-arr_eta1y(i,j,ctr)));
+                            arr_eta1x(i,j,ctr) = 1.d0*abs(ik);
+                            arr_eta1y(i,j,ctr) = 1.d0*abs(jk);
+%                             arr_eta0x(i,j,ctr)=abs(1.d0*ik)*abs((1.d0-arr_eta1x(i,j,ctr)));
+%                             arr_eta0y(i,j,ctr)=abs(1.d0*jk)*abs((1.d0-arr_eta1y(i,j,ctr)));
+                            arr_eta0x(i,j,ctr) = 1.d0 - arr_eta1x(i,j,ctr);
+                            arr_eta0y(i,j,ctr) = 1.d0 - arr_eta1y(i,j,ctr);
                             nvx=0.d0;
                             nvy=0.d0;
                     end   % checking if there are intersections
@@ -101,6 +103,8 @@ function [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydsc
                     eta1y = arr_eta1y(i,j,ctr);                    
 
                     [A0,B0,A1,B1]=A0B0A1B1triso2(i,j,ik,jk,0,0,nvx,nvy,C,rho,dx,dy, ik*eta0x,-ik*eta1x, jk*eta0y, -jk*eta1y); % + 
+%                     [A0,B0,A1,B1]=A0B0A1B1triso2(i,j,0,0,ik,jk,-nvx,nvy,C,rho,dx,dy, -ik*eta0x,ik*eta1x, -jk*eta0y, jk*eta1y); % + 
+                   
                     CJI=svdinv(B0*A0)*(B1*A1);
                     coeffAux(ctr,:)=CJI(1,1:6);
                     coeffAuy(ctr,:)=CJI(7,7:12);

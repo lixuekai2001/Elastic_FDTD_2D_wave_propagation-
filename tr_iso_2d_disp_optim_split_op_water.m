@@ -11,29 +11,21 @@ clear all;  %clear all variables
  NY =100*mg;  %Y
  
 %  time=0.02d0;
-  time=1.0d0;
+  time=0.6d0;
  
  % time step in seconds
-%  DELTAT = 0.5d-4;	%[sec] 
  DELTAT = 0.1d-2;	%[sec] 
 %  DELTAT = DELTAT/mg;
  % total number of time steps
  %  NSTEP = 2000;
  NSTEP = round(time/DELTAT);
  time_vec = [1:NSTEP]'*DELTAT;
- 
-% YMAX=50.d0; %[m]
-% XMAX=50.d0; %[m]
 
 YMAX=2000.d0; %[m]
 XMAX=2000.d0; %[m]
 
 XMIN=0.d0;
 YMIN=0.d0;
-
-% DELTAT = 1.d-4;	%[sec]
-% DELTAT = 1.d-4;	%[sec]
-% DELTAT = 50.d-9;	%[sec]
 
 DELTAX=(XMAX-XMIN)/NX; %[m]
 DELTAY=(YMAX-YMIN)/NY; %[m]
@@ -52,22 +44,15 @@ IT_DISPLAY = 20;
 SNAPSHOT=false;
 snapshot_time=50:25:NSTEP; %on what steps
 
-%Use explosive source or gaussian?
-EXPLOSIVE_SOURCE=false;
-
 %Show source position on the graph?
 SHOW_SOURCE_POSITION=true;
-
-%Pause a little bit each iteration
-PAUSE_ON=false;
-pause_time=0.1; %[sec]
 
 % To show or don't show wavefield 
 SAVE_VX_JPG =false; %doesn't work, because I didn't pay attention to it yet
 SAVE_VY_JPG =true;
 
 %Record video - corresponding SAVE_VX or VY must be turned on
-%because video is being created by capturing of current frame
+%because video is being created by capturing of the current frame
 %Matlab 2012 + required, saves video to a current folder
 MAKE_MOVIE_VX=false;
 MAKE_MOVIE_VY=false;
@@ -77,13 +62,12 @@ tagv='video';
 DISP_NORM=true;    %show normal displacement
 
 DATA_TO_BINARY_FILE=true;  %save data to .txt files
-tag='1int_f12_';
+tag='3int_f12_A0B0ch';
 
 SAVE_SEISMOGRAMS=false;
 seis_tag=['mzcurvetriso2D' num2str(NX)];
 
 RED_BLUE=false;      %use custom red-blue only colormap
-COLORBAR_ON=true;   %show colorbar
 PLOT_INTERFACES = true;
 eps=0.00000000001d0;
 
@@ -113,7 +97,6 @@ f0 = 12.d0;
 t0 = 1.20d0 / f0;
 factor = 1.d10;
 
-
 % source
 ANGLE_FORCE = 90.d0;
 
@@ -133,11 +116,9 @@ HUGEVAL = 1.d+30;
 STABILITY_THRESHOLD = 1.d+25;
 
 
-% xsource=round(NX/2)*DELTAX;
-% ysource=round(NY/4)*DELTAY;
-
 xsource=round(NX/2)*DELTAX;
-ysource=round(0.85*NY)*DELTAY;
+% ysource=round(0.85*NY)*DELTAY;
+ysource=round(0.7*NY)*DELTAY;
 
 dist = HUGEVAL;
 for j = 2:NY
@@ -155,12 +136,6 @@ JSOURCE = JSOURCE -1;
 xsource=ISOURCE*DELTAX;
 ysource=JSOURCE*DELTAY;
 
-% main arrays
-ux=zeros(3,NX+1,NY+1);
-uy=zeros(3,NX+1,NY+1);
-
-%elastic parameters
-rho=zeros(NX+1,NY+1);
 
 %Initiate video object for vx
 if MAKE_MOVIE_VX
@@ -194,19 +169,11 @@ if SAVE_SEISMOGRAMS
     fprintf('ON. Save seismograms\n');
     NREC=41;
     fprintf('Set %d recievers:\n',NREC);
-    % xdeb=XMIN;
-    % xfin=XMAX;
-%     xdeb=25.d0;
-%     xfin=25.d0;
-%     xdeb=xsource;
-%     xfin=xsource;
     ydeb=0.2d0*YMAX;
     yfin=0.8d0*YMAX;
     xdeb=xsource;
     xfin=xsource;
     fprintf('  x0=%.2f  x1=%.2f\n  y0=%.2f  y1=%.2f\n', xdeb,xfin,ydeb,yfin);
-    % way=0.0:0.50:100.0;
-    % way=15.0:0.50:50.0;     %Reciever line
 
     % for receivers
     ix_rec=zeros(NREC,1);
@@ -218,7 +185,6 @@ if SAVE_SEISMOGRAMS
     seisux=zeros(NSTEP,NREC);
     seisuy=zeros(NSTEP,NREC);
 
-    % [sharedVals,idxsIntoA] = intersect(xrec,way);
     xspacerec = (xfin-xdeb) / double(NREC-1);
     yspacerec = (yfin-ydeb) / double(NREC-1);
     for irec=1:NREC
@@ -240,26 +206,16 @@ if SAVE_SEISMOGRAMS
         end
        end
        fprintf('Reciever %d at x= %.2f y= %.2f\n',irec,xrec(irec), yrec(irec));
-    %    fprintf('closest grid point found at distance %.2f in i = %d\n',dist,ix_rec(irec));
     end
     fprintf('Source position:  '); % print position of the source
     fprintf('x = %.2f  ',xsource);
     fprintf('y = %.2f\n',ysource);
-
     fprintf('%d files will be saved to %s',2*NREC,pwd)
     fprintf('\n ...OK\n');
 end
 
 
 %--------------------------------------------------------------------------
-
-% initialize arrays
-  ux(:,:,:) = ZERO;
-  uy(:,:,:) = ZERO;
-
-% initialize seismograms
-  seisux(:,:) = ZERO;
-  seisuy(:,:) = ZERO;
 
  if RED_BLUE
       fprintf('Set custom colormap');
@@ -284,12 +240,14 @@ fprintf('...OK\n');
 %------------------------------------------------------------------------
 %     CREATE VELOCITY MODEL
 %------------------------------------------------------------------------
-C=zeros(NX+1,NY+1,4);
+%elastic parameters
+rho = zeros(NX+1,NY+1);
+C = zeros(NX+1,NY+1,4);
 nice_matrix = zeros(NX+1,NY+1);
 
 % fprintf('Create velocity model ');
 tic;
-[model_cp, model_cs, model_rho, interface_list] = make_vel_model2(NX+1, NY+1, XMAX, XMIN, YMAX, YMIN);
+[model_cp, model_cs, model_rho, interface_list] = make_vel_model3(NX+1, NY+1, XMAX, XMIN, YMAX, YMIN);
 % fprintf('...OK\n');
 % fprintf('\n');
 toc;
@@ -348,31 +306,37 @@ coeffuy=cell(NX,NY);
 
 tic;
 % Construct modified and conventional operators
+
 for i=2:NX %over OX
     for j=2:NY %over OY
-        % construct modified operators
-        if markers(i,j)>0
+
+        if markers(i,j)>0        % construct modified operators
             num_of_interface = markers(i,j);
             xdscr = interface_list{num_of_interface,1};
             ydscr = interface_list{num_of_interface,2};
             
 %             try
-            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);    
+            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);   
 %             catch
 %                 fprintf('%d %d %d INSTABILITY\n', num_of_interface,i, j);
 %             end
+            
             Aux(1,:) = C(i,j,1)*Aux(1,:);
             Aux(2,:) = C(i,j,4)*Aux(2,:);
             Aux(3,:) = C(i,j,2)*Aux(3,:);
             Aux(4,:) = C(i,j,4)*Aux(4,:);
-            coeffux{i,j}=Aux;
             
             Auy(1,:) = C(i,j,4)*Auy(1,:);
             Auy(2,:) = C(i,j,3)*Auy(2,:);
             Auy(3,:) = C(i,j,4)*Auy(3,:);
             Auy(4,:) = C(i,j,2)*Auy(4,:);
+            
+            [Aux, Auy] = check_if_conventional_rows(Aux, Auy, i, j, C, DELTAX, DELTAY);
+            
+            coeffux{i,j}=Aux;
             coeffuy{i,j}=Auy;
         end
+        
         
         %if any conditions were used - use conventional heterogeneous operator
         if isempty(coeffux{i,j}) && isempty(coeffuy{i,j})
@@ -404,23 +368,29 @@ if mmAB>100*max(cux) || mmAB>100*max(cuy)
     fprintf('...FAILED\n');
 else
     fprintf('...OK\n');
-    clearvars cux cuy i j A B mAB mmAB;
 end
 toc;
 
 %Clean up memory from temporary variables
-clearvars coeffAux coeffAuy cux cuy tmp_coeff eta0x eta0y eta1x eta1y;
-clearvars A0 B0 A1 B1 CJI ctr pt0x pt0y pt1x pt1y;
-clearvars ik jk ii jj i j denom_for_tmp_coeff nvx nvy x_trial y_trial;
-clearvars arr_eta0x arr_eta1x arr_eta0y arr_eta1y delta_x delta_y;
-clearvars idx cvalue p1x p1y p2x p2y p3x p3y s12 s23 tmp tvx tvy
-clearvars xi yi xdeb xfin ydeb yfin dxds dyds;
-clearvars xoriginleft xoriginright nc;
-clearvars cp cs cp_above_eb cp_below_eb density rho_below_eb rho_above_eb;
+clearvars Aux Auy xdscr ydscr;
+clearvars xdeb xfin ydeb yfin;
+clearvars cux cuy i j A B mAB mmAB;
 
 fprintf('Used memory: %.2f mb\n', monitor_memory_whos);
 input('\nPress Enter to start time loop ...');
 
+% main arrays
+  ux=zeros(3,NX+1,NY+1);
+  uy=zeros(3,NX+1,NY+1);
+  
+% initialize arrays
+  ux(:,:,:) = ZERO;
+  uy(:,:,:) = ZERO;
+
+% initialize seismograms
+  seisux(:,:) = ZERO;
+  seisuy(:,:) = ZERO;
+  
 %------------------------------------------------------------------------
 %     TIME LOOP
 %------------------------------------------------------------------------
@@ -509,6 +479,8 @@ for it = 1:NSTEP
     uy(1,:,:)=uy(2,:,:);
     uy(2,:,:)=uy(3,:,:);
 
+    
+    
     % output information
     if(mod(it,IT_DISPLAY) == 0 || it == 5)
         fprintf('Time step: %d\n',it)
@@ -536,15 +508,13 @@ for it = 1:NSTEP
                     plot(x_interf,z_interf,'Color','white','LineWidth',2); hold on;
                 end
             end
-            if COLORBAR_ON
-                colorbar();
-%                 set(gca, 'CLim', [minbar, maxbar]);
-            end
-            drawnow;  hold on;
+
             if SHOW_SOURCE_POSITION
-                scatter(xsource, ysource,'g','filled'); drawnow;
+                scatter(xsource, ysource,'g','filled'); hold on;
             end
-           
+            
+            drawnow;
+            
             if SNAPSHOT
                 if  nnz(snapshot_time==it)>0
                     snapshat = getframe(gcf);

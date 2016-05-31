@@ -10,6 +10,7 @@ function imagescc(x_vec, z_vec, u, ptitle, pxlabel, pzlabel, axisnormal)
     title(ptitle, 'FontWeight','b', 'FontSize', 16);
     xlabel(pxlabel, 'FontWeight','b', 'FontSize', 14);
     ylabel(pzlabel, 'FontWeight','b', 'FontSize', 14);
+    colorbar();
     if axisnormal
         set(gca,'YDir','normal');
     end
