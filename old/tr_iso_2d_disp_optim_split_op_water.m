@@ -1,53 +1,52 @@
-%                             Transverse isotropic case
-%           Operators splitted for dx2 dy2 dxdy
 
-close all;  %close all extra windows
-clc;        %clear console
-clear all;  %clear all variables
+close all;
+clear all; 
 
-% total number of grid points in each direction of the grid
- mg= 2;
- NX =100*mg;  %X
- NY =100*mg;  %Y
- 
-%  time=0.02d0;
-  time=0.6d0;
- 
- % time step in seconds
- DELTAT = 0.1d-2;	%[sec] 
-%  DELTAT = DELTAT/mg;
- % total number of time steps
- %  NSTEP = 2000;
- NSTEP = round(time/DELTAT);
- time_vec = [1:NSTEP]'*DELTAT;
+%% MODEL
 
-YMAX=2000.d0; %[m]
-XMAX=2000.d0; %[m]
+% Grid size
+nx = 200;
+nz = 200;  
 
-XMIN=0.d0;
-YMIN=0.d0;
+% Model dimensions, [m]
+zmax = 2000.0;
+xmax = 2000.0;
+xmin = 0.0;
+zmin = 0.0;
 
-DELTAX=(XMAX-XMIN)/NX; %[m]
-DELTAY=(YMAX-YMIN)/NY; %[m]
+% Grid step, [m]
+dx = (xmax-xmin)/nx; 
+dz = (zmax-zmin)/nz;
 
-Cerj_thick = floor(0.15*NX);
-Cerjan_rate = 0.015*15/Cerj_thick;
-%--------------------------------------------------------------------------
-%---------------------- FLAGS ---------------------------------------------
-% total number of time steps
-% NSTEP = 350;
-% NSTEP=2000;
+
+%% TIME STEPPING
+
+t_total=0.6;    % [sec] recording duration
+dt = 0.1d-2;	% [sec] time step
+
+nt = round(t_total/dt);
+time_vec = [1:nt]'*dt;
+
+
+%% ABSORBING BOUNDARY
+% Cerjan boundary conditions - simple exponential decay
+Cerj_thick = floor(0.15*nx);        % thicknes of the layer
+Cerjan_rate = 0.015*15/Cerj_thick;  % decay rate
+
+
+%% FLAGS
+
 % display information on the screen from time to time
 IT_DISPLAY = 20;
 
 %Take instant snapshot
 SNAPSHOT=false;
-snapshot_time=50:25:NSTEP; %on what steps
+snapshot_time=50:25:nt; %on what steps
 
 %Show source position on the graph?
 SHOW_SOURCE_POSITION=true;
 
-% To show or don't show wavefield 
+% To show or don't show wavefield
 SAVE_VX_JPG =false; %doesn't work, because I didn't pay attention to it yet
 SAVE_VY_JPG =true;
 
@@ -65,7 +64,7 @@ DATA_TO_BINARY_FILE=true;  %save data to .txt files
 tag='3int_f12_A0B0ch';
 
 SAVE_SEISMOGRAMS=false;
-seis_tag=['mzcurvetriso2D' num2str(NX)];
+seis_tag=['mzcurvetriso2D' num2str(nx)];
 
 RED_BLUE=false;      %use custom red-blue only colormap
 PLOT_INTERFACES = true;
@@ -83,8 +82,8 @@ if MAKE_MOVIE_VX && ~SAVE_VX_JPG
 end
 
 %vectors for visualisation using imagesec
-nx_vec=[0:NX]*DELTAX;	%[m]
-ny_vec=[0:NY]*DELTAY;
+nx_vec=[0:nx]*dx;	%[m]
+nz_vec=[0:nz]*dz;
 
 
 % P-velocity, S-velocity and density
@@ -116,96 +115,96 @@ HUGEVAL = 1.d+30;
 STABILITY_THRESHOLD = 1.d+25;
 
 
-xsource=round(NX/2)*DELTAX;
-% ysource=round(0.85*NY)*DELTAY;
-ysource=round(0.7*NY)*DELTAY;
+xsource=round(nx/2)*dx;
+% ysource=round(0.85*nz)*dz;
+ysource=round(0.7*nz)*dz;
 
 dist = HUGEVAL;
-for j = 2:NY
-for i = 2:NX
-  distval = sqrt((DELTAX*double(i-1) - xsource)^2 + (DELTAY*double(j-1) - ysource)^2);
-  if(distval < dist)
-    dist = distval;
-    ISOURCE = i;
-    JSOURCE = j;
-  end
-end
+for j = 2:nz
+    for i = 2:nx
+        distval = sqrt((dx*double(i-1) - xsource)^2 + (dz*double(j-1) - ysource)^2);
+        if(distval < dist)
+            dist = distval;
+            ISOURCE = i;
+            JSOURCE = j;
+        end
+    end
 end
 ISOURCE = ISOURCE -1;
 JSOURCE = JSOURCE -1;
-xsource=ISOURCE*DELTAX;
-ysource=JSOURCE*DELTAY;
+xsource=ISOURCE*dx;
+ysource=JSOURCE*dz;
 
 
 %Initiate video object for vx
 if MAKE_MOVIE_VX
-    movie_name_vx=[tagv '_vx_' num2str(NX) '_' num2str(NY) '_' num2str(DELTAX) '_' num2str(f0) '.avi'];
+    movie_name_vx=[tagv '_vx_' num2str(nx) '_' num2str(nz) '_' num2str(dx) '_' num2str(f0) '.avi'];
     vidObj_vx=VideoWriter(movie_name_vx);
     open(vidObj_vx);
 end
 
 %Initiate video object for vy
 if MAKE_MOVIE_VY
-    movie_name_vy=[tagv '_vy_' num2str(NX) '_' num2str(NY) '_' num2str(DELTAX) '_' num2str(f0) '.avi'];
+    movie_name_vy=[tagv '_vy_' num2str(nx) '_' num2str(nz) '_' num2str(dx) '_' num2str(f0) '.avi'];
     vidObj_vy=VideoWriter(movie_name_vy);
     open(vidObj_vy);
 end
 
- 
- %----------------------------------------
- %--- program starts here ----------------
- %----------------------------------------
+
+%----------------------------------------
+%--- program starts here ----------------
+%----------------------------------------
 
 fprintf('2D elastic finite-difference code in displacement formulation with C-PML\n\n');
-fprintf('NX = %d  ',NX);
-fprintf('NY = %d  ',NY);
-fprintf('%d in total\n',NX*NY);
-fprintf(' dx = %f  dy=%f  dt=%e\n',DELTAX,DELTAY,DELTAT);
-fprintf('Size of the model: %.2f m x ',NX*DELTAX);
-fprintf('%.2f\n',NY*DELTAY);
+fprintf('nx = %d  ',nx);
+fprintf('nz = %d  ',nz);
+fprintf('%d in total\n',nx*nz);
+fprintf(' dx = %f  dy=%f  dt=%e\n',dx,dz,dt);
+fprintf('Size of the model: %.2f m x ',nx*dx);
+fprintf('%.2f\n',nz*dz);
 fprintf('\n');
 
 if SAVE_SEISMOGRAMS
     fprintf('ON. Save seismograms\n');
     NREC=41;
     fprintf('Set %d recievers:\n',NREC);
-    ydeb=0.2d0*YMAX;
-    yfin=0.8d0*YMAX;
+    ydeb=0.2d0*zmax;
+    yfin=0.8d0*zmax;
     xdeb=xsource;
     xfin=xsource;
     fprintf('  x0=%.2f  x1=%.2f\n  y0=%.2f  y1=%.2f\n', xdeb,xfin,ydeb,yfin);
-
+    
     % for receivers
     ix_rec=zeros(NREC,1);
     iy_rec=zeros(NREC,1);
     xrec=zeros(NREC,1);
-    yrec=zeros(NREC,1); 
-
+    yrec=zeros(NREC,1);
+    
     % for seismograms
-    seisux=zeros(NSTEP,NREC);
-    seisuy=zeros(NSTEP,NREC);
-
+    seisux=zeros(nt,NREC);
+    seisuy=zeros(nt,NREC);
+    
     xspacerec = (xfin-xdeb) / double(NREC-1);
     yspacerec = (yfin-ydeb) / double(NREC-1);
     for irec=1:NREC
-         xrec(irec) = xdeb + double(irec-1)*xspacerec;
-         yrec(irec) = ydeb + double(irec-1)*yspacerec;
+        xrec(irec) = xdeb + double(irec-1)*xspacerec;
+        yrec(irec) = ydeb + double(irec-1)*yspacerec;
     end
     NREC=length(xrec);
     % find closest grid point for each receiver
     for irec=1:NREC
-       dist = HUGEVAL;
-       for j = 2:NY
-        for i = 2:NX
-          distval = sqrt((DELTAX*double(i-1) - xrec(irec))^2 + (DELTAY*double(j-1) - yrec(irec))^2);
-          if(distval < dist)
-            dist = distval;
-            ix_rec(irec) = i;
-            iy_rec(irec) = j;
-          end
+        dist = HUGEVAL;
+        for j = 2:nz
+            for i = 2:nx
+                distval = sqrt((dx*double(i-1) - xrec(irec))^2 + (dz*double(j-1) - yrec(irec))^2);
+                if(distval < dist)
+                    dist = distval;
+                    ix_rec(irec) = i;
+                    iy_rec(irec) = j;
+                end
+            end
         end
-       end
-       fprintf('Reciever %d at x= %.2f y= %.2f\n',irec,xrec(irec), yrec(irec));
+        fprintf('Reciever %d at x= %.2f y= %.2f\n',irec,xrec(irec), yrec(irec));
     end
     fprintf('Source position:  '); % print position of the source
     fprintf('x = %.2f  ',xsource);
@@ -217,23 +216,23 @@ end
 
 %--------------------------------------------------------------------------
 
- if RED_BLUE
-      fprintf('Set custom colormap');
-      CMAP = make_red_blue_colormap();
-      colormap(CMAP);
-     fprintf('...OK\n');   
- end
-  
-  
-fprintf('Cartesian grid generation');
-gr_x=zeros(NX+1,NY+1);  %grid point coordinates in physical domain
-gr_y=zeros(NX+1,NY+1);
+if RED_BLUE
+    fprintf('Set custom colormap');
+    CMAP = make_red_blue_colormap();
+    colormap(CMAP);
+    fprintf('...OK\n');
+end
 
-for i=1:NX+1
-    for j=1:NY+1
-        gr_x(i,j)=(i-1)*DELTAX;
-        gr_y(i,j)=(j-1)*DELTAY;    
-    end    
+
+fprintf('Cartesian grid generation');
+gr_x=zeros(nx+1,nz+1);  %grid point coordinates in physical domain
+gr_y=zeros(nx+1,nz+1);
+
+for i=1:nx+1
+    for j=1:nz+1
+        gr_x(i,j)=(i-1)*dx;
+        gr_y(i,j)=(j-1)*dz;
+    end
 end         %calculate cartesian grid points
 fprintf('...OK\n');
 
@@ -241,13 +240,13 @@ fprintf('...OK\n');
 %     CREATE VELOCITY MODEL
 %------------------------------------------------------------------------
 %elastic parameters
-rho = zeros(NX+1,NY+1);
-C = zeros(NX+1,NY+1,4);
-nice_matrix = zeros(NX+1,NY+1);
+rho = zeros(nx+1,nz+1);
+C = zeros(nx+1,nz+1,4);
+nice_matrix = zeros(nx+1,nz+1);
 
 % fprintf('Create velocity model ');
 tic;
-[model_cp, model_cs, model_rho, interface_list] = make_vel_model3(NX+1, NY+1, XMAX, XMIN, YMAX, YMIN);
+[model_cp, model_cs, model_rho, interface_list] = make_vel_model3(nx+1, nz+1, xmax, xmin, zmax, zmin);
 % fprintf('...OK\n');
 % fprintf('\n');
 toc;
@@ -255,18 +254,18 @@ toc;
 number_of_interfaces = length(interface_list);
 
 % Put markers at nodes near the interfaces
-markers = find_modified_nodes(NX,NY,gr_x,gr_y ,interface_list);
+markers = find_modified_nodes(nx,nz,gr_x,gr_y ,interface_list);
 
 % Elastic moduli array
-fprintf('\nCreate C 6D %d elements. ',NX*NY*4);
-for i = 1:NX+1
-    for j = 1:NY+1
+fprintf('\nCreate C 6D %d elements. ',nx*nz*4);
+for i = 1:nx+1
+    for j = 1:nz+1
         rhov = model_rho(i,j);
         cpv = model_cp(i,j);
         csv = model_cs(i,j);
         
         lambda =rhov*(cpv*cpv - 2.d0*csv*csv);
-        mu = rhov*csv*csv;  
+        mu = rhov*csv*csv;
         
         % isotropic material
         c11v = (lambda + 2.d0*mu);
@@ -292,34 +291,34 @@ fprintf('\n');
 check_material_stability(C);
 
 % Check Courant stability condition
-check_CFL(max(max(model_cp)), DELTAT, DELTAX, DELTAY);
+check_CFL(max(max(model_cp)), dt, dx, dz);
 
 % Check number of nodes per wavelength, ~ 10 is recommended
-check_nodes_per_wavelength(min(min(model_cp)), f0, DELTAX, DELTAY);
+check_nodes_per_wavelength(min(min(model_cp)), f0, dx, dz);
 
 %------------------------------------------------------------------------
 %     CONSTRUCT OPERATORS
 %------------------------------------------------------------------------
 fprintf('Constructing coeff{i,j}...');
-coeffux=cell(NX,NY);
-coeffuy=cell(NX,NY);
+coeffux=cell(nx,nz);
+coeffuy=cell(nx,nz);
 
 tic;
 % Construct modified and conventional operators
 
-for i=2:NX %over OX
-    for j=2:NY %over OY
-
+for i=2:nx %over OX
+    for j=2:nz %over OY
+        
         if markers(i,j)>0        % construct modified operators
             num_of_interface = markers(i,j);
             xdscr = interface_list{num_of_interface,1};
             ydscr = interface_list{num_of_interface,2};
             
-%             try
-            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);   
-%             catch
-%                 fprintf('%d %d %d INSTABILITY\n', num_of_interface,i, j);
-%             end
+            %             try
+            [Aux, Auy] = construct_interface_operators(i,j, gr_x, gr_y, xdscr, ydscr, C, rho);
+            %             catch
+            %                 fprintf('%d %d %d INSTABILITY\n', num_of_interface,i, j);
+            %             end
             
             Aux(1,:) = C(i,j,1)*Aux(1,:);
             Aux(2,:) = C(i,j,4)*Aux(2,:);
@@ -331,19 +330,19 @@ for i=2:NX %over OX
             Auy(3,:) = C(i,j,4)*Auy(3,:);
             Auy(4,:) = C(i,j,2)*Auy(4,:);
             
-            [Aux, Auy] = check_if_conventional_rows(Aux, Auy, i, j, C, DELTAX, DELTAY);
+            [Aux, Auy] = check_if_conventional_rows(Aux, Auy, i, j, C, dx, dz);
             
             coeffux{i,j}=Aux;
             coeffuy{i,j}=Auy;
         end
         
         
-        %if any conditions were used - use conventional heterogeneous operator
+        %if anz conditions were used - use conventional heterogeneous operator
         if isempty(coeffux{i,j}) && isempty(coeffuy{i,j})
-            [Aux, Auy] = construct_Zahradnik_operators(i,j,C, DELTAX, DELTAY);
+            [Aux, Auy] = construct_Zahradnik_operators(i,j,C, dx, dz);
             coeffux{i,j} = Aux;
             coeffuy{i,j} = Auy;
-        end    
+        end
         
     end
 end
@@ -380,31 +379,31 @@ fprintf('Used memory: %.2f mb\n', monitor_memory_whos);
 input('\nPress Enter to start time loop ...');
 
 % main arrays
-  ux=zeros(3,NX+1,NY+1);
-  uy=zeros(3,NX+1,NY+1);
-  
+ux=zeros(3,nx+1,nz+1);
+uy=zeros(3,nx+1,nz+1);
+
 % initialize arrays
-  ux(:,:,:) = ZERO;
-  uy(:,:,:) = ZERO;
+ux(:,:,:) = ZERO;
+uy(:,:,:) = ZERO;
 
 % initialize seismograms
-  seisux(:,:) = ZERO;
-  seisuy(:,:) = ZERO;
-  
+seisux(:,:) = ZERO;
+seisuy(:,:) = ZERO;
+
 %------------------------------------------------------------------------
 %     TIME LOOP
 %------------------------------------------------------------------------
-for it = 1:NSTEP   
+for it = 1:nt
     % calculate next step
     tic;
-%     [ux, uy] = solver_mx_VTI_elastic(ux, uy, DELTAT, coeffux, coeffuy, rho, C);
-%     [ux, uy] = solver_mx_acoustic(ux, uy, DELTAT, coeffux, coeffuy, rho);
-
+    %     [ux, uy] = solver_mx_VTI_elastic(ux, uy, dt, coeffux, coeffuy, rho, C);
+    %     [ux, uy] = solver_mx_acoustic(ux, uy, dt, coeffux, coeffuy, rho);
+    
     ux(3,:,:)=0.d0;
     uy(3,:,:)=0.d0;
     
-    for i = 2:NX
-        for j = 2:NY          
+    for i = 2:nx
+        for j = 2:nz
             rhov=rho(i,j);
             A_ux=coeffux{i,j};
             value_dux_dxx=A_ux(1,1:3)*[ux(2,i-1,j); ux(2,i,j); ux(2,i+1,j)];
@@ -417,13 +416,17 @@ for it = 1:NSTEP
             value_duy_dyy=A_uy(2,1:3)*[uy(2,i,j-1); uy(2,i,j); uy(2,i,j+1)];
             value_duy_dxy=A_uy(3,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
             value_duy_dyx=A_uy(4,:)*[uy(2,i+1,j+1); uy(2,i+1,j-1); uy(2,i-1,j+1); uy(2,i-1,j-1)];
-
+            
             %--------------------------------------------------------------------------------------------------------------------
             
-            dt2rho=(DELTAT^2.d0)/rhov;
-% 
-%           sigmas_ux= c11v * value_dux_dxx + c13v * value_duy_dyx + c44v * value_dux_dyy + c44v * value_duy_dxy;
-%           sigmas_uy= c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
+            dt2rho=(dt^2.d0)/rhov;
+            %
+            %           sigmas_ux= c11v * value_dux_dxx + c13v * value_duy_dyx + c44v * value_dux_dyy + c44v * value_duy_dxy;
+            %           sigmas_uy= c44v * value_dux_dyx + c44v * value_duy_dxx + c13v * value_dux_dxy + c33v * value_duy_dyy;
+                        
+            %             sigmas_ux= c11v * dux_dxx + c13v * duz_dzx + c44v * dux_dzz + c44v * duz_dxz;
+            %             sigmas_uz= c44v * dux_dzx + c44v * duz_dxx + c13v * dux_dxz + c33v * duz_dzz;
+            
             
             if nice_matrix(i,j)
                 sigmas_ux = value_dux_dxx + value_dux_dyy;
@@ -432,43 +435,43 @@ for it = 1:NSTEP
                 sigmas_ux = value_dux_dxx + value_duy_dyx + value_dux_dyy + value_duy_dxy;
                 sigmas_uy = value_dux_dyx + value_duy_dxx + value_dux_dxy + value_duy_dyy;
             end
-
+            
             ux(3,i,j) = 2.d0 * ux(2,i,j) - ux(1,i,j) + sigmas_ux * dt2rho;
             uy(3,i,j) = 2.d0 * uy(2,i,j) - uy(1,i,j) + sigmas_uy * dt2rho;
         end
     end
-
+    
     % Add volumetric force source term
-    t = double(it-1)*DELTAT;
+    t = double(it-1)*dt;
     [force_x, force_y] = source_function(f0, t0, factor, ANGLE_FORCE, t);
     i = ISOURCE;
     j = JSOURCE;
     rhov = rho(i,j);
-    ux(3,i,j) = ux(3,i,j) + force_x * DELTAT^2.d0 / rhov;
-    uy(3,i,j) = uy(3,i,j) + force_y * DELTAT^2.d0 / rhov;
+    ux(3,i,j) = ux(3,i,j) + force_x * dt^2.d0 / rhov;
+    uy(3,i,j) = uy(3,i,j) + force_y * dt^2.d0 / rhov;
     
     
     % Dirichlet conditions (rigid boundaries) on the edges
     ux(3,1,:) = ZERO;       % OX left and right
-    ux(3,NX+1,:) = ZERO;
-
+    ux(3,nx+1,:) = ZERO;
+    
     ux(3,:,1) = ZERO;       % OX up and down
-    ux(3,:,NY+1) = ZERO;
-
+    ux(3,:,nz+1) = ZERO;
+    
     uy(3,1,:) = ZERO;       % OY left and right
-    uy(3,NX+1,:) = ZERO;
-
+    uy(3,nx+1,:) = ZERO;
+    
     uy(3,:,1) = ZERO;       % OY up and down
-    uy(3,:,NY+1) = ZERO;
-
+    uy(3,:,nz+1) = ZERO;
+    
     % store seismograms
     if SAVE_SEISMOGRAMS
         for irec = 1:NREC
-                seisux(it,irec) = ux(3,ix_rec(irec),iy_rec(irec));
-                seisuy(it,irec) = uy(3,ix_rec(irec),iy_rec(irec));
-        end   
+            seisux(it,irec) = ux(3,ix_rec(irec),iy_rec(irec));
+            seisuy(it,irec) = uy(3,ix_rec(irec),iy_rec(irec));
+        end
     end
-
+    
     % Implement exponential absorbing Cerjan boundary conditions
     [ux, uy] = Cerjan_absorbing_BC(ux, uy, Cerjan_rate, [Cerj_thick Cerj_thick], [Cerj_thick Cerj_thick]);
     
@@ -478,28 +481,28 @@ for it = 1:NSTEP
     
     uy(1,:,:)=uy(2,:,:);
     uy(2,:,:)=uy(3,:,:);
-
+    
     
     
     % output information
     if(mod(it,IT_DISPLAY) == 0 || it == 5)
         fprintf('Time step: %d\n',it)
-        fprintf('Time: %.4f sec\n',single((it-1)*DELTAT));
+        fprintf('Time: %.4f sec\n',single((it-1)*dt));
         toc;
-    
+        
         if(SAVE_VX_JPG || SAVE_VY_JPG)
             clf;	%clear current frame
             if DISP_NORM
                 u=sqrt(ux(3,:,:).^2+uy(3,:,:).^2);
-            elseif SAVE_VX_JPG 
-                u=ux(3,:,:); 
+            elseif SAVE_VX_JPG
+                u=ux(3,:,:);
             elseif SAVE_VY_JPG
                 u=uy(3,:,:);
             end
             u = squeeze(u(1,:,:))';
-            timee = single((it-1)*DELTAT);
-            ptitle = ['Step = ',num2str(it),' Time: ',sprintf('%.4f',timee),' sec']; 
-            imagescc(nx_vec, ny_vec, u, ptitle,'m','m', 1);
+            timee = single((it-1)*dt);
+            ptitle = ['Step = ',num2str(it),' Time: ',sprintf('%.4f',timee),' sec'];
+            imagescc(nx_vec, nz_vec, u, ptitle,'m','m', 1);
             
             if PLOT_INTERFACES
                 for int_cnt = 1:number_of_interfaces
@@ -508,7 +511,7 @@ for it = 1:NSTEP
                     plot(x_interf,z_interf,'Color','white','LineWidth',2); hold on;
                 end
             end
-
+            
             if SHOW_SOURCE_POSITION
                 scatter(xsource, ysource,'g','filled'); hold on;
             end
@@ -523,7 +526,7 @@ for it = 1:NSTEP
                     imwrite(imgg,scrsht_name);
                     fprintf('Screenshot %s saved to %s\n', scrsht_name, pwd);
                     clearvars scrsht_name imgg snapshat
-                end  
+                end
             end
             
             if MAKE_MOVIE_VY
@@ -534,39 +537,38 @@ for it = 1:NSTEP
             
             if DATA_TO_BINARY_FILE
                 filename=[tag 'u_' num2str(it) '.mat'];
-%                 dlmwrite(filename, u);
-                save(filename, 'u', 'timee','f0','factor', 'DELTAT','DELTAX','DELTAY','NX','NY','XMAX','YMAX','interface_list');
+                %                 dlmwrite(filename, u);
+                save(filename, 'u', 'timee','f0','factor', 'dt','dx','dz','nx','nz','xmax','zmax','interface_list');
                 fprintf('Data file %s saved to %s\n',filename, pwd);
             end
         end
-        fprintf('\n'); 
+        fprintf('\n');
     end
 end
-  % end of time loop
+% end of time loop
 
-  
-  current_folder = pwd;     %current path
-  if MAKE_MOVIE_VX
-	  close(vidObj_vx);     %- close video file
-      printf('Video %s saved in %s\n',movie_name_vx,current_folder);
-  end
-  
-  if MAKE_MOVIE_VY
-	  close(vidObj_vy);     %- close video file
-      fprintf('Video %s saved in %s\n',movie_name_vy, current_folder);
-  end
- 
-    
- if SAVE_SEISMOGRAMS
-      for i=1:NREC
-          filename=[seis_tag 'ux' '4x' num2str((ix_rec(i)-1)*dx,'%.2f') 'y' num2str((iy_rec(i)-1)*dy,'%.2f') '_' num2str(i) '.txt'];
-          dlmwrite(filename, [time_vec, seisux(:,i)]);
-          fprintf('ux. Seismogram for rec at %.2f %.2f saved as %s to %s\n', (ix_rec(i)-1)*dx, (iy_rec(i)-1)*dy, filename, pwd);
-          filename=[seis_tag 'uy' '4y' num2str((iy_rec(i)-1)*dy,'%.2f') 'x' num2str((ix_rec(i)-1)*dx,'%.2f') '_' num2str(i) '.txt'];
-          dlmwrite(filename, [time_vec, seisuy(:,i)]);
-          fprintf('uy. Seismogram for rec at %.2f %.2f saved as %s to %s\n', (ix_rec(i)-1)*dx, (iy_rec(i)-1)*dy, filename, pwd);
-      end
- end
-  
-  disp('End');
- 
+
+current_folder = pwd;     %current path
+if MAKE_MOVIE_VX
+    close(vidObj_vx);     %- close video file
+    printf('Video %s saved in %s\n',movie_name_vx,current_folder);
+end
+
+if MAKE_MOVIE_VY
+    close(vidObj_vy);     %- close video file
+    fprintf('Video %s saved in %s\n',movie_name_vy, current_folder);
+end
+
+
+if SAVE_SEISMOGRAMS
+    for i=1:NREC
+        filename=[seis_tag 'ux' '4x' num2str((ix_rec(i)-1)*dx,'%.2f') 'y' num2str((iy_rec(i)-1)*dy,'%.2f') '_' num2str(i) '.txt'];
+        dlmwrite(filename, [time_vec, seisux(:,i)]);
+        fprintf('ux. Seismogram for rec at %.2f %.2f saved as %s to %s\n', (ix_rec(i)-1)*dx, (iy_rec(i)-1)*dy, filename, pwd);
+        filename=[seis_tag 'uy' '4y' num2str((iy_rec(i)-1)*dy,'%.2f') 'x' num2str((ix_rec(i)-1)*dx,'%.2f') '_' num2str(i) '.txt'];
+        dlmwrite(filename, [time_vec, seisuy(:,i)]);
+        fprintf('uy. Seismogram for rec at %.2f %.2f saved as %s to %s\n', (ix_rec(i)-1)*dx, (iy_rec(i)-1)*dy, filename, pwd);
+    end
+end
+
+disp('End');
