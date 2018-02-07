@@ -165,7 +165,7 @@ for it = 1:nt
     % Add source term
     ux3(jsrc, isrc) = ux3(jsrc, isrc) + force_x(it);
     uz3(jsrc, isrc) = uz3(jsrc, isrc) + force_z(it);
-    % Exchange data between t-2 (1), t-1 (2) and t (3)
+    % Exchange data between t-2 (1), t-1 (2) and t (3) and apply ABS
     ux1 = ux2 .* weights;
     ux2 = ux3 .* weights;
     uz1 = uz2 .* weights;

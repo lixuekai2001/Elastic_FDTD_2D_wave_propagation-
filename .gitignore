@@ -9,7 +9,6 @@
 *.jpg
 *.semd
 
-*.mat
-tmp_*
+tmp*
 tester*
 test*

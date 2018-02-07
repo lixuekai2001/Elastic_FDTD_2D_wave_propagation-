@@ -1,13 +1,24 @@
-## 2D elastic VTI FDTD code for wave propagation in heterogenious media.(still under construction) 
+# **Simple FDTD wave propagation in 2D elastic isotropic medium**
 
-Sharp boundaries are treated with modified operator(Ovcharenko, Fuji, Martin), everywhere else heterogeneous Zahradnik 1995 operators are used.
+Single-file vectorized implementation of elastic wave propagation in MATLAB. The program is solving second-order wave equation in displacement formulation. We don't account for derivatives of elastic parameters. Modelling area is surrounded by simple absorbing sponge boundaries with exponential decay (Cerjan, 1985). 
 
-Written by: Oleg Ovcharenko, 2016
+![Wavefield example](doc/snap.png)
 
-### Structure:
+### **DISCRETIZATION DETAILS**:
+* Finite-Differences in Time Domain (FDTD)
+* Explicit time stepping
+* O(2,2)
+* Conventional stencils derived from Taylor series: 
+    * in space [1:-2:1]/dx2 and [1:-1:-1:1]/4dxdz
+    * in time [1:-2:1]/dt2
 
-- tr_iso* - main file
-- lib/ - essential subroutines
-- etc/ - not really important stuff such as movie maker and so on
-- old/ - older versions of main file and specific examples
-- data/ - velocity models and list of anisotropic models
+### **MODEL DETAILS**
+* Isotropic
+* Spounge of reflecting boundaries
+
+### **HOW TO USE**: 
+Run `elastic_2D_FDTD_O22.m` in MATLAB
+
+oleg.ovcahrenko@kaust.edu.sa
+
+vladimir.kazei@kaust.edu.sa
