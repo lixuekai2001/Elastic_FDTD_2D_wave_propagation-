@@ -16,6 +16,8 @@
 % to simplify start up.
 %
 % The program does not save any files, add such option manually if needed.
+% Drawing the wavefield is the most computationally demanding. Increase 
+% IT_DISPLAY value to reduce output and accelerate computation.
 %
 % The goal is to provide a simple example of wave propagation
 % in elastic medium.
@@ -56,13 +58,13 @@ lam = rho.*(vp.^2 - 2*vs.^2);       % first Lame parameter
 mu = rho.*vs.^2;                    % shear modulus, [N/m2]
 
 %% TIME STEPPING
-t_total = 1.;                       % [sec] recording duration
+t_total = .7;                       % [sec] recording duration
 dt = 1/(max(vp(:)) * sqrt(1.0/dx^2 + 1.0/dz^2));
 nt = round(t_total/dt);             % number of time steps
 t = [0:nt]*dt;
 
 %% SOURCE
-f0 = 5.0;                          % dominant frequency of the wavelet
+f0 = 10.0;                          % dominant frequency of the wavelet
 t0 = 1.20 / f0;                     % excitation time
 factor = 1e10;                      % amplitude coefficient
 angle_force = 90.0;                 % spatial orientation
@@ -115,15 +117,18 @@ end
 
 %% SUMMARY
 fprintf('#################################################\n');
-fprintf('2D elastic FDTD seismic wave propagation in \ndisplacement formulation with Cerjan(1985) \nboundary conditions\n');
+fprintf('2D elastic FDTD wave propagation in isotripic \nmedium in displacement formulation with \nCerjan(1985) boundary conditions\n');
 fprintf('#################################################\n');
-fprintf('Model:\n\t%d x %d\tgrid nz x nx\n\t%.0f x %.0f\t\t[m] dz x dx\n',nz, nx, dz,dx);
-fprintf('\t%.0f x %.0f\t[m] model size\n',nx*dx, nz*dz);
-fprintf('\t%.0f...%.0f\t[m/s] vp\n', min(vp(:)), max(vp(:)));
-fprintf('\t%.0f...%.0f\t[m/s] vs\n', min(vs(:)), max(vs(:)));
-fprintf('\t%.0f...%.0f\t[kg/m3] rho\n', min(rho(:)), max(rho(:)));
+fprintf('Model:\n\t%d x %d\tgrid nz x nx\n\t%.1e x %.1e\t[m] dz x dx\n',nz, nx, dz,dx);
+fprintf('\t%.1e x %.1e\t[m] model size\n',nx*dx, nz*dz);
+fprintf('\t%.1e...%.1e\t[m/s] vp\n', min(vp(:)), max(vp(:)));
+fprintf('\t%.1e...%.1e\t[m/s] vs\n', min(vs(:)), max(vs(:)));
+fprintf('\t%.1e...%.1e\t[kg/m3] rho\n', min(rho(:)), max(rho(:)));
+fprintf('Time:\n\t%.1e\t[sec] total\n\t%.1e\tdt\n\t%d\ttime steps\n',t_total,dt,nt);
+fprintf('Source:\n\t%.1e\t[Hz] dominant frequency\n\t%.1f\t[sec] index time\n',f0,t0);
 fprintf('Other:\n\t%.1f\tCFL number\n', max(vp(:))*dt * sqrt(1.0/dx^2 + 1.0/dz^2));
 fprintf('\t%.2f\t[m] shortest wavelength\n\t%d, %d\t points-per-wavelength OX, OZ\n', min_wavelengh, floor(min_wavelengh/dx), floor(min_wavelengh/dz));
+fprintf('#################################################\n');
 
 %% ALLOCATE MEMORY FOR WAVEFIELD
 ux3 = zeros(nz+2,nx+2);            % Wavefields at t
@@ -172,15 +177,11 @@ for it = 1:nt
     uz2 = uz3 .* weights;
     % Output
     if mod(it,IT_DISPLAY) == 0
-        tc = single((it-1)*dt);
-        fprintf('Time step: %d \t %.4f s\n',it, single(tc));
-        u=sqrt(ux3.^2 + uz3.^2); imagesc(u);
-        colorbar; colormap jet;
-        title(['Step = ',num2str(it),' Time: ',sprintf('%.4f',tc),' sec']);
-        xlabel('m'); ylabel('m');
-        axis equal tight;
-        drawnow;
+        fprintf('Time step: %d \t %.4f s\n',it, single(t(it)));
+        u=sqrt(ux3.^2 + uz3.^2);
+        imagesc([0:nx+1]*dx, [0:nz+1]*dz, u); colorbar; colormap jet;
+        title(['Step = ',num2str(it),' Time: ',sprintf('%.4f',t(it)),' sec']);
+        xlabel('m'); ylabel('m'); axis equal tight; drawnow;
     end
 end
-toc;
-disp('End');
+toc; disp('End');
