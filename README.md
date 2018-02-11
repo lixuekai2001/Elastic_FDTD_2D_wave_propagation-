@@ -14,7 +14,7 @@ Single-file vectorized implementation of elastic wave propagation in MATLAB. The
 
 ### **MODEL DETAILS**
 * Isotropic (vp, vs, rho)
-* Spounge of reflecting boundaries
+* Sponge or reflecting boundaries
 
 ### **HOW TO USE**: 
 Run `elastic_2D_FDTD_O22.m` in MATLAB
