@@ -36,7 +36,7 @@ close all;
 clear all;
 
 % Output periodicity in time steps
-IT_DISPLAY = 100;
+IT_DISPLAY = 10;
 
 %% MODEL
 % Model dimensions, [m]
@@ -75,9 +75,9 @@ isrc = round(nx/2);                 % source location along OX
 deg2rad = pi / 180.d0;              % convet degrees to radians
 a = pi*pi*f0*f0;
 dt2rho_src = dt^2/rho(jsrc, isrc);
-%     source_term = factor * exp(-a*(t-t0)^2);                             % Gaussian
+    source_term = factor * exp(-a*(t-t0).^2);                             % Gaussian
 %     source_term =  -factor*2.0*a*(t-t0)*exp(-a*(t-t0)^2);                % First derivative of a Gaussian:
-source_term = -factor * (1.0 - 2.0*a*(t-t0).^2).*exp(-a*(t-t0).^2);        % Ricker source time function (second derivative of a Gaussian):
+% source_term = -factor * (1.0 - 2.0*a*(t-t0).^2).*exp(-a*(t-t0).^2);        % Ricker source time function (second derivative of a Gaussian):
 
 force_x = sin(angle_force * deg2rad) * source_term * dt2rho_src / (dx * dz);
 force_z = cos(angle_force * deg2rad) * source_term * dt2rho_src / (dx * dz);
@@ -152,15 +152,15 @@ for it = 1:nt
     uz3 = zeros(size(uz2));
     % Second-order derivatives
     % Ux
-    dux_dxx = co_dxx * (ux2(1:end-2,2:end-1) - 2*ux2(2:end-1,2:end-1) + ux2(3:end,2:end-1));
-    dux_dzz = co_dzz * (ux2(2:end-1,1:end-2) - 2*ux2(2:end-1,2:end-1) + ux2(2:end-1,3:end));
-    dux_dxz = co_dxz * (ux2(3:end,1:end-2) - ux2(3:end,3:end) ...
-        - ux2(1:end-2,1:end-2) + ux2(1:end-2,3:end));
+    dux_dxx = co_dxx * (ux2(2:end-1,1:end-2) - 2*ux2(2:end-1,2:end-1) + ux2(2:end-1,3:end));
+    dux_dzz = co_dzz * (ux2(1:end-2,2:end-1) - 2*ux2(2:end-1,2:end-1) + ux2(3:end,2:end-1));
+    dux_dxz = co_dxz * (ux2(1:end-2,3:end) - ux2(3:end,3:end) ...
+        - ux2(1:end-2,1:end-2) + ux2(3:end,1:end-2));
     % Uz
-    duz_dxx = co_dxx * (uz2(1:end-2,2:end-1) - 2*uz2(2:end-1,2:end-1) + uz2(3:end,2:end-1));
-    duz_dzz = co_dzz * (uz2(2:end-1,1:end-2) - 2*uz2(2:end-1,2:end-1) + uz2(2:end-1,3:end));
-    duz_dxz = co_dxz * (uz2(3:end,1:end-2) - uz2(3:end,3:end) ...
-        - uz2(1:end-2,1:end-2) + uz2(1:end-2,3:end));
+    duz_dxx = co_dxx * (uz2(2:end-1,1:end-2) - 2*uz2(2:end-1,2:end-1) + uz2(2:end-1,3:end));
+    duz_dzz = co_dzz * (uz2(1:end-2,2:end-1) - 2*uz2(2:end-1,2:end-1) + uz2(3:end,2:end-1));
+    duz_dxz = co_dxz * (uz2(1:end-2,3:end) - uz2(3:end,3:end) ...
+        - uz2(1:end-2,1:end-2) + uz2(3:end,1:end-2));
     % Stress G
     sigmas_ux = lam_2mu .* dux_dxx + lam .* duz_dxz + mu .* (dux_dzz + duz_dxz);
     sigmas_uz = mu .* (dux_dxz + duz_dxx) + lam .* dux_dxz + lam_2mu .* duz_dzz;
